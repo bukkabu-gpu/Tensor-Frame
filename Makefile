@@ -37,7 +37,7 @@ docs-test:
 	cd docs && mdbook test
 
 # Publishing targets
-publish-check:
+publish-check: fmt test-all docs-test
 	cargo publish --dry-run
 
 publish:
