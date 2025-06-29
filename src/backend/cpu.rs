@@ -52,6 +52,7 @@ impl Backend for CpuBackend {
                     .collect();
                 Ok(Storage::Cpu(result))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -71,6 +72,7 @@ impl Backend for CpuBackend {
                     .collect();
                 Ok(Storage::Cpu(result))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -90,6 +92,7 @@ impl Backend for CpuBackend {
                     .collect();
                 Ok(Storage::Cpu(result))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -109,6 +112,7 @@ impl Backend for CpuBackend {
                     .collect();
                 Ok(Storage::Cpu(result))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -119,6 +123,7 @@ impl Backend for CpuBackend {
             (Storage::Cpu(_a), Storage::Cpu(_b)) => {
                 Err(TensorError::BackendError("Matmul not yet implemented".to_string()))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -132,6 +137,7 @@ impl Backend for CpuBackend {
                 let sum: f32 = data.par_iter().sum();
                 Ok(Storage::Cpu(vec![sum]))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -146,6 +152,7 @@ impl Backend for CpuBackend {
                 let mean = sum / data.len() as f32;
                 Ok(Storage::Cpu(vec![mean]))
             }
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
@@ -153,6 +160,7 @@ impl Backend for CpuBackend {
     fn to_vec_f32(&self, storage: &Storage) -> Result<Vec<f32>> {
         match storage {
             Storage::Cpu(data) => Ok(data.clone()),
+            #[cfg(any(feature = "wgpu", feature = "cuda"))]
             _ => Err(TensorError::BackendError("CPU backend can only operate on CPU storage".to_string())),
         }
     }
