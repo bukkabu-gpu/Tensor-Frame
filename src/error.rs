@@ -2,12 +2,21 @@ use std::fmt;
 
 #[derive(Debug, Clone)]
 pub enum TensorError {
-    ShapeMismatch { expected: Vec<usize>, got: Vec<usize> },
+    ShapeMismatch {
+        expected: Vec<usize>,
+        got: Vec<usize>,
+    },
     InvalidShape(String),
-    InvalidIndex { index: Vec<usize>, shape: Vec<usize> },
+    InvalidIndex {
+        index: Vec<usize>,
+        shape: Vec<usize>,
+    },
     BackendError(String),
     BroadcastError(String),
-    DimensionMismatch { expected: usize, got: usize },
+    DimensionMismatch {
+        expected: usize,
+        got: usize,
+    },
 }
 
 impl fmt::Display for TensorError {

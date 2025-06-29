@@ -1,17 +1,17 @@
-pub mod dtype;
-pub mod shape;
-pub mod ops;
 mod broadcast;
+pub mod dtype;
+pub mod ops;
+pub mod shape;
 
 use crate::backend::{Backend, Storage, BACKEND};
 use crate::error::{Result, TensorError};
+use broadcast::broadcast_data;
 use dtype::DType;
 use ops::TensorOps;
 use shape::Shape;
-use broadcast::broadcast_data;
-use std::ops::{Add, Sub, Mul, Div};
-use std::sync::Arc;
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
+use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Tensor {
@@ -58,7 +58,11 @@ impl Tensor {
         Self::from_vec_with_backend(data, shape, BACKEND.clone())
     }
 
-    pub fn from_vec_with_backend(data: Vec<f32>, shape: impl Into<Shape>, backend: Arc<dyn Backend>) -> Result<Self> {
+    pub fn from_vec_with_backend(
+        data: Vec<f32>,
+        shape: impl Into<Shape>,
+        backend: Arc<dyn Backend>,
+    ) -> Result<Self> {
         let shape = shape.into();
         let storage = backend.from_slice(&data, &shape)?;
         Ok(Tensor {
@@ -107,7 +111,7 @@ impl Tensor {
         if self.backend.backend_type() == backend.backend_type() {
             return Ok(self.clone());
         }
-        
+
         let data = self.to_vec()?;
         Self::from_vec_with_backend(data, self.shape.dims().to_vec(), backend)
     }
@@ -115,7 +119,7 @@ impl Tensor {
     fn ensure_same_backend(&self, other: &Self) -> Result<()> {
         if self.backend.backend_type() != other.backend.backend_type() {
             return Err(TensorError::BackendError(
-                "Tensors must be on the same backend".to_string()
+                "Tensors must be on the same backend".to_string(),
             ));
         }
         Ok(())
@@ -132,19 +136,23 @@ impl Add for Tensor {
     fn add(self, other: Self) -> Self::Output {
         self.ensure_same_backend(&other)?;
         let result_shape = self.broadcast_shapes(&other)?;
-        
+
         // Get data and broadcast if necessary
         let lhs_data = self.to_vec()?;
         let rhs_data = other.to_vec()?;
-        
+
         let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &lhs_data, &self.shape, &rhs_data, &other.shape, &result_shape
+            &lhs_data,
+            &self.shape,
+            &rhs_data,
+            &other.shape,
+            &result_shape,
         )?;
-        
+
         let lhs_storage = self.backend.from_slice(&lhs_broadcasted, &result_shape)?;
         let rhs_storage = self.backend.from_slice(&rhs_broadcasted, &result_shape)?;
         let storage = self.backend.add(&lhs_storage, &rhs_storage)?;
-        
+
         Ok(Tensor {
             storage,
             shape: result_shape,
@@ -266,7 +274,7 @@ impl TensorOps for Tensor {
     fn transpose(&self) -> Result<Self> {
         if self.ndim() != 2 {
             return Err(TensorError::InvalidShape(
-                "Transpose only supports 2D tensors".to_string()
+                "Transpose only supports 2D tensors".to_string(),
             ));
         }
         let dims = self.shape.dims();
@@ -284,18 +292,20 @@ impl TensorOps for Tensor {
         let dims = self.shape.dims();
         let new_dims = if let Some(axis) = axis {
             if axis >= self.ndim() || dims[axis] != 1 {
-                return Err(TensorError::InvalidShape(
-                    format!("Cannot squeeze axis {} with size {}", axis, dims[axis])
-                ));
+                return Err(TensorError::InvalidShape(format!(
+                    "Cannot squeeze axis {} with size {}",
+                    axis, dims[axis]
+                )));
             }
-            dims.iter().enumerate()
+            dims.iter()
+                .enumerate()
                 .filter(|(i, _)| *i != axis)
                 .map(|(_, &d)| d)
                 .collect()
         } else {
             dims.iter().filter(|&&d| d != 1).copied().collect()
         };
-        
+
         let new_shape = Shape::new(new_dims)?;
         Ok(Tensor {
             storage: self.storage.clone(),
@@ -307,9 +317,11 @@ impl TensorOps for Tensor {
 
     fn unsqueeze(&self, axis: usize) -> Result<Self> {
         if axis > self.ndim() {
-            return Err(TensorError::InvalidShape(
-                format!("Axis {} out of range for {}D tensor", axis, self.ndim())
-            ));
+            return Err(TensorError::InvalidShape(format!(
+                "Axis {} out of range for {}D tensor",
+                axis,
+                self.ndim()
+            )));
         }
         let mut new_dims = self.shape.dims().to_vec();
         new_dims.insert(axis, 1);
@@ -327,14 +339,16 @@ impl fmt::Display for Tensor {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let data = self.to_vec().map_err(|_| fmt::Error)?;
         let shape = self.shape().dims();
-        
+
         write!(f, "Tensor(")?;
-        
+
         if shape.len() == 1 {
             // 1D tensor: [1, 2, 3, 4]
             write!(f, "[")?;
             for (i, &val) in data.iter().enumerate() {
-                if i > 0 { write!(f, ", ")?; }
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
                 write!(f, "{:.4}", val)?;
             }
             write!(f, "]")?;
@@ -342,10 +356,14 @@ impl fmt::Display for Tensor {
             // 2D tensor: [[1, 2], [3, 4]]
             write!(f, "[")?;
             for row in 0..shape[0] {
-                if row > 0 { write!(f, ",\n       ")?; }
+                if row > 0 {
+                    write!(f, ",\n       ")?;
+                }
                 write!(f, "[")?;
                 for col in 0..shape[1] {
-                    if col > 0 { write!(f, ", ")?; }
+                    if col > 0 {
+                        write!(f, ", ")?;
+                    }
                     let idx = row * shape[1] + col;
                     write!(f, "{:.4}", data[idx])?;
                 }
@@ -357,7 +375,9 @@ impl fmt::Display for Tensor {
             write!(f, "shape={:?}, data=[", shape)?;
             let max_display = 8.min(data.len());
             for (i, &val) in data.iter().take(max_display).enumerate() {
-                if i > 0 { write!(f, ", ")?; }
+                if i > 0 {
+                    write!(f, ", ")?;
+                }
                 write!(f, "{:.4}", val)?;
             }
             if data.len() > max_display {
@@ -365,7 +385,12 @@ impl fmt::Display for Tensor {
             }
             write!(f, "]")?;
         }
-        
-        write!(f, ", dtype={}, backend={:?})", self.dtype, self.backend_type())
+
+        write!(
+            f,
+            ", dtype={}, backend={:?})",
+            self.dtype,
+            self.backend_type()
+        )
     }
 }

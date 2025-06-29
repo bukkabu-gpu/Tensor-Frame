@@ -1,14 +1,14 @@
 use crate::error::Result;
-use crate::tensor::{shape::Shape, dtype::DType};
-use std::fmt::Debug;
+use crate::tensor::{dtype::DType, shape::Shape};
 use once_cell::sync::Lazy;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 pub mod cpu;
-#[cfg(feature = "wgpu")]
-pub mod wgpu;
 #[cfg(feature = "cuda")]
 pub mod cuda;
+#[cfg(feature = "wgpu")]
+pub mod wgpu;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum BackendType {
@@ -21,21 +21,23 @@ pub enum BackendType {
 
 pub trait Backend: Debug + Send + Sync {
     fn backend_type(&self) -> BackendType;
-    fn is_available(&self) -> bool { true }
-    
+    fn is_available(&self) -> bool {
+        true
+    }
+
     fn zeros(&self, shape: &Shape, dtype: DType) -> Result<Storage>;
     fn ones(&self, shape: &Shape, dtype: DType) -> Result<Storage>;
     fn from_slice(&self, data: &[f32], shape: &Shape) -> Result<Storage>;
-    
+
     fn add(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     fn sub(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     fn mul(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     fn div(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
-    
+
     fn matmul(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     fn sum(&self, storage: &Storage, axis: Option<usize>) -> Result<Storage>;
     fn mean(&self, storage: &Storage, axis: Option<usize>) -> Result<Storage>;
-    
+
     fn to_vec_f32(&self, storage: &Storage) -> Result<Vec<f32>>;
 }
 
@@ -61,21 +63,20 @@ pub struct WgpuStorage {
     pub buffer: std::sync::Arc<::wgpu::Buffer>,
 }
 
-pub static BACKEND: Lazy<Arc<dyn Backend>> = Lazy::new(|| {
-    get_backend_with_priority(&default_backend_priority())
-});
+pub static BACKEND: Lazy<Arc<dyn Backend>> =
+    Lazy::new(|| get_backend_with_priority(&default_backend_priority()));
 
 fn default_backend_priority() -> Vec<BackendType> {
     let mut priority = Vec::new();
-    
+
     #[cfg(feature = "cuda")]
     priority.push(BackendType::Cuda);
-    
+
     #[cfg(feature = "wgpu")]
     priority.push(BackendType::Wgpu);
-    
+
     priority.push(BackendType::Cpu);
-    
+
     priority
 }
 
@@ -108,7 +109,7 @@ pub fn get_backend_with_priority(priority: &[BackendType]) -> Arc<dyn Backend> {
             }
         }
     }
-    
+
     // Fallback to CPU backend
     Arc::new(cpu::CpuBackend::new())
 }

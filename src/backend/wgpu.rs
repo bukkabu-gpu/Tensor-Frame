@@ -1,6 +1,6 @@
 use super::{Backend, BackendType, Storage, WgpuStorage};
 use crate::error::{Result, TensorError};
-use crate::tensor::{shape::Shape, dtype::DType};
+use crate::tensor::{dtype::DType, shape::Shape};
 use wgpu::util::DeviceExt;
 
 #[derive(Debug)]
@@ -11,9 +11,10 @@ pub struct WgpuBackend {
 
 impl WgpuBackend {
     pub fn new() -> Result<Self> {
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| TensorError::BackendError(format!("Failed to create async runtime: {}", e)))?;
-        
+        let rt = tokio::runtime::Runtime::new().map_err(|e| {
+            TensorError::BackendError(format!("Failed to create async runtime: {}", e))
+        })?;
+
         rt.block_on(async {
             let instance = wgpu::Instance::new(&wgpu::InstanceDescriptor {
                 backends: wgpu::Backends::all(),
@@ -28,20 +29,22 @@ impl WgpuBackend {
                     force_fallback_adapter: false,
                 })
                 .await
-                .map_err(|e| TensorError::BackendError(format!("Failed to find WGPU adapter: {}", e)))?;
+                .map_err(|e| {
+                    TensorError::BackendError(format!("Failed to find WGPU adapter: {}", e))
+                })?;
 
             let (device, queue) = adapter
-                .request_device(
-                    &wgpu::DeviceDescriptor {
-                        label: Some("Tensor Frame Device"),
-                        required_features: wgpu::Features::empty(),
-                        required_limits: wgpu::Limits::default(),
-                        memory_hints: wgpu::MemoryHints::default(),
-                        trace: wgpu::Trace::Off,
-                    }
-                )
+                .request_device(&wgpu::DeviceDescriptor {
+                    label: Some("Tensor Frame Device"),
+                    required_features: wgpu::Features::empty(),
+                    required_limits: wgpu::Limits::default(),
+                    memory_hints: wgpu::MemoryHints::default(),
+                    trace: wgpu::Trace::Off,
+                })
                 .await
-                .map_err(|e| TensorError::BackendError(format!("Failed to create device: {}", e)))?;
+                .map_err(|e| {
+                    TensorError::BackendError(format!("Failed to create device: {}", e))
+                })?;
 
             Ok(WgpuBackend { device, queue })
         })
@@ -60,23 +63,35 @@ impl Backend for WgpuBackend {
     fn zeros(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
         let size = shape.numel();
         let data = vec![0.0f32; size];
-        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Zeros Buffer"),
-            contents: bytemuck::cast_slice(&data),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
-        });
-        Ok(Storage::Wgpu(WgpuStorage { buffer: std::sync::Arc::new(buffer) }))
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Zeros Buffer"),
+                contents: bytemuck::cast_slice(&data),
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::COPY_DST,
+            });
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: std::sync::Arc::new(buffer),
+        }))
     }
 
     fn ones(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
         let size = shape.numel();
         let data = vec![1.0f32; size];
-        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Ones Buffer"),
-            contents: bytemuck::cast_slice(&data),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
-        });
-        Ok(Storage::Wgpu(WgpuStorage { buffer: std::sync::Arc::new(buffer) }))
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Ones Buffer"),
+                contents: bytemuck::cast_slice(&data),
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::COPY_DST,
+            });
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: std::sync::Arc::new(buffer),
+        }))
     }
 
     fn from_slice(&self, data: &[f32], shape: &Shape) -> Result<Storage> {
@@ -86,12 +101,18 @@ impl Backend for WgpuBackend {
                 got: vec![data.len()],
             });
         }
-        let buffer = self.device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Data Buffer"),
-            contents: bytemuck::cast_slice(data),
-            usage: wgpu::BufferUsages::STORAGE | wgpu::BufferUsages::COPY_SRC | wgpu::BufferUsages::COPY_DST,
-        });
-        Ok(Storage::Wgpu(WgpuStorage { buffer: std::sync::Arc::new(buffer) }))
+        let buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("Data Buffer"),
+                contents: bytemuck::cast_slice(data),
+                usage: wgpu::BufferUsages::STORAGE
+                    | wgpu::BufferUsages::COPY_SRC
+                    | wgpu::BufferUsages::COPY_DST,
+            });
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: std::sync::Arc::new(buffer),
+        }))
     }
 
     fn add(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage> {
@@ -99,7 +120,9 @@ impl Backend for WgpuBackend {
             (Storage::Wgpu(a), Storage::Wgpu(b)) => {
                 self.execute_binary_op(&a.buffer, &b.buffer, include_str!("../shaders/add.wgsl"))
             }
-            _ => Err(TensorError::BackendError("Storage type mismatch".to_string())),
+            _ => Err(TensorError::BackendError(
+                "Storage type mismatch".to_string(),
+            )),
         }
     }
 
@@ -108,7 +131,9 @@ impl Backend for WgpuBackend {
             (Storage::Wgpu(a), Storage::Wgpu(b)) => {
                 self.execute_binary_op(&a.buffer, &b.buffer, include_str!("../shaders/sub.wgsl"))
             }
-            _ => Err(TensorError::BackendError("Storage type mismatch".to_string())),
+            _ => Err(TensorError::BackendError(
+                "Storage type mismatch".to_string(),
+            )),
         }
     }
 
@@ -117,7 +142,9 @@ impl Backend for WgpuBackend {
             (Storage::Wgpu(a), Storage::Wgpu(b)) => {
                 self.execute_binary_op(&a.buffer, &b.buffer, include_str!("../shaders/mul.wgsl"))
             }
-            _ => Err(TensorError::BackendError("Storage type mismatch".to_string())),
+            _ => Err(TensorError::BackendError(
+                "Storage type mismatch".to_string(),
+            )),
         }
     }
 
@@ -126,29 +153,38 @@ impl Backend for WgpuBackend {
             (Storage::Wgpu(a), Storage::Wgpu(b)) => {
                 self.execute_binary_op(&a.buffer, &b.buffer, include_str!("../shaders/div.wgsl"))
             }
-            _ => Err(TensorError::BackendError("Storage type mismatch".to_string())),
+            _ => Err(TensorError::BackendError(
+                "Storage type mismatch".to_string(),
+            )),
         }
     }
 
     fn matmul(&self, _lhs: &Storage, _rhs: &Storage) -> Result<Storage> {
-        Err(TensorError::BackendError("Matmul not yet implemented for WGPU".to_string()))
+        Err(TensorError::BackendError(
+            "Matmul not yet implemented for WGPU".to_string(),
+        ))
     }
 
     fn sum(&self, _storage: &Storage, _axis: Option<usize>) -> Result<Storage> {
-        Err(TensorError::BackendError("Sum not yet implemented for WGPU".to_string()))
+        Err(TensorError::BackendError(
+            "Sum not yet implemented for WGPU".to_string(),
+        ))
     }
 
     fn mean(&self, _storage: &Storage, _axis: Option<usize>) -> Result<Storage> {
-        Err(TensorError::BackendError("Mean not yet implemented for WGPU".to_string()))
+        Err(TensorError::BackendError(
+            "Mean not yet implemented for WGPU".to_string(),
+        ))
     }
 
     fn to_vec_f32(&self, storage: &Storage) -> Result<Vec<f32>> {
         match storage {
             Storage::Wgpu(wgpu_storage) => {
                 let buffer = &wgpu_storage.buffer;
-                let rt = tokio::runtime::Runtime::new()
-                    .map_err(|e| TensorError::BackendError(format!("Failed to create async runtime: {}", e)))?;
-                
+                let rt = tokio::runtime::Runtime::new().map_err(|e| {
+                    TensorError::BackendError(format!("Failed to create async runtime: {}", e))
+                })?;
+
                 rt.block_on(async {
                     let buffer_size = buffer.size();
                     let staging_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -158,9 +194,11 @@ impl Backend for WgpuBackend {
                         mapped_at_creation: false,
                     });
 
-                    let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                        label: Some("Copy Encoder"),
-                    });
+                    let mut encoder =
+                        self.device
+                            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                                label: Some("Copy Encoder"),
+                            });
 
                     encoder.copy_buffer_to_buffer(buffer, 0, &staging_buffer, 0, buffer_size);
                     self.queue.submit(Some(encoder.finish()));
@@ -182,16 +220,24 @@ impl Backend for WgpuBackend {
                     Ok(result)
                 })
             }
-            _ => Err(TensorError::BackendError("Invalid storage type".to_string())),
+            _ => Err(TensorError::BackendError(
+                "Invalid storage type".to_string(),
+            )),
         }
     }
 }
 
 impl WgpuBackend {
-    fn execute_binary_op(&self, lhs: &wgpu::Buffer, rhs: &wgpu::Buffer, shader_source: &str) -> Result<Storage> {
-        let rt = tokio::runtime::Runtime::new()
-            .map_err(|e| TensorError::BackendError(format!("Failed to create async runtime: {}", e)))?;
-        
+    fn execute_binary_op(
+        &self,
+        lhs: &wgpu::Buffer,
+        rhs: &wgpu::Buffer,
+        shader_source: &str,
+    ) -> Result<Storage> {
+        let rt = tokio::runtime::Runtime::new().map_err(|e| {
+            TensorError::BackendError(format!("Failed to create async runtime: {}", e))
+        })?;
+
         rt.block_on(async {
             let buffer_size = lhs.size();
             let result_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
@@ -201,22 +247,26 @@ impl WgpuBackend {
                 mapped_at_creation: false,
             });
 
-            let shader_module = self.device.create_shader_module(wgpu::ShaderModuleDescriptor {
-                label: Some("Binary Op Shader"),
-                source: wgpu::ShaderSource::Wgsl(shader_source.into()),
-            });
+            let shader_module = self
+                .device
+                .create_shader_module(wgpu::ShaderModuleDescriptor {
+                    label: Some("Binary Op Shader"),
+                    source: wgpu::ShaderSource::Wgsl(shader_source.into()),
+                });
 
-            let pipeline = self.device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-                label: Some("Binary Op Pipeline"),
-                layout: None,
-                module: &shader_module,
-                entry_point: Some("main"),
-                compilation_options: wgpu::PipelineCompilationOptions {
-                    constants: &[],
-                    zero_initialize_workgroup_memory: false,
-                },
-                cache: None,
-            });
+            let pipeline = self
+                .device
+                .create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
+                    label: Some("Binary Op Pipeline"),
+                    layout: None,
+                    module: &shader_module,
+                    entry_point: Some("main"),
+                    compilation_options: wgpu::PipelineCompilationOptions {
+                        constants: &[],
+                        zero_initialize_workgroup_memory: false,
+                    },
+                    cache: None,
+                });
 
             let bind_group_layout = pipeline.get_bind_group_layout(0);
             let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -238,9 +288,11 @@ impl WgpuBackend {
                 label: Some("Binary Op Bind Group"),
             });
 
-            let mut encoder = self.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                label: Some("Binary Op Encoder"),
-            });
+            let mut encoder = self
+                .device
+                .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                    label: Some("Binary Op Encoder"),
+                });
 
             {
                 let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -254,7 +306,9 @@ impl WgpuBackend {
             }
 
             self.queue.submit(Some(encoder.finish()));
-            Ok(Storage::Wgpu(WgpuStorage { buffer: std::sync::Arc::new(result_buffer) }))
+            Ok(Storage::Wgpu(WgpuStorage {
+                buffer: std::sync::Arc::new(result_buffer),
+            }))
         })
     }
 }

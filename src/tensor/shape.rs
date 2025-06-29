@@ -8,7 +8,9 @@ pub struct Shape {
 impl Shape {
     pub fn new(dims: Vec<usize>) -> Result<Self> {
         if dims.is_empty() {
-            return Err(TensorError::InvalidShape("Shape cannot be empty".to_string()));
+            return Err(TensorError::InvalidShape(
+                "Shape cannot be empty".to_string(),
+            ));
         }
         Ok(Shape { dims })
     }

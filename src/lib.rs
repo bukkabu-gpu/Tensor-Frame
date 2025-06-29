@@ -4,7 +4,7 @@ pub mod tensor;
 
 pub use backend::{Backend, BackendType};
 pub use error::{Result, TensorError};
-pub use tensor::{Tensor, dtype::DType, shape::Shape, ops::TensorOps};
+pub use tensor::{dtype::DType, ops::TensorOps, shape::Shape, Tensor};
 
 #[cfg(test)]
 mod tests {
@@ -27,7 +27,7 @@ mod tests {
         let data = c.to_vec().unwrap();
         assert!(data.iter().all(|&x| x == 2.0));
     }
-    
+
     #[test]
     fn test_from_vec() {
         let data = vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0];
@@ -46,4 +46,3 @@ mod tests {
         assert!(data.iter().all(|&x| x == 2.0));
     }
 }
-
