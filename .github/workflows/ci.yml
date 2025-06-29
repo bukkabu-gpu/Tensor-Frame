@@ -25,14 +25,14 @@ jobs:
       - name: Cache dependencies
         uses: Swatinem/rust-cache@v2
 
-      - name: Format code
-        run: make fmt
+      # - name: Format code
+      #   run: make fmt
 
-      - name: Auto-commit formatting changes
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'style: Auto-format code with cargo fmt'
-          file_pattern: '*.rs'
+      # - name: Auto-commit formatting changes
+      #   uses: stefanzweifel/git-auto-commit-action@v5
+      #   with:
+      #     commit_message: 'style: Auto-format code with cargo fmt'
+      #     file_pattern: '*.rs'
 
       - name: Run tests
         run: make test
