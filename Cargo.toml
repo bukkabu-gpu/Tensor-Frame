@@ -1,13 +1,33 @@
 [package]
-name = "tensor"
+name = "tensor-frame"
 version = "0.1.0"
 edition = "2021"
+authors = ["Your Name <your.email@example.com>"]
+description = "A PyTorch-like tensor library for Rust with CPU, WGPU, and CUDA backends"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/yourusername/tensor-frame"
+keywords = ["tensor", "machine-learning", "gpu", "cuda", "wgpu"]
+categories = ["science", "mathematics"]
+readme = "README.md"
 
 [dependencies]
-wgpu = "23.0.0"
-bytemuck = "1.19.0"
-futures = "0.3.31"
-futures-intrusive = "0.5.0"
-once_cell = "1.20.2"
-# Tokio is only required for testing
-# tokio = { version = "1", features = ["full"] }
+once_cell = "1.21"
+rayon = { version = "1.10", optional = true }
+
+# Optional dependencies for different backends
+wgpu = { version = "25.0", optional = true }
+bytemuck = { version = "1.19.0", optional = true }
+futures = { version = "0.3.31", optional = true }
+tokio = { version = "1.45", features = ["rt", "rt-multi-thread"], optional = true }
+
+# CUDA dependencies (optional)
+cudarc = { version = "0.16", features = ["cuda-version-from-build-system"], optional = true }
+
+[features]
+default = ["cpu"]
+cpu = ["rayon"]
+wgpu = ["dep:wgpu", "dep:bytemuck", "dep:futures", "dep:tokio"]
+cuda = ["dep:cudarc"]
+
+[dev-dependencies]
+criterion = "0.5"

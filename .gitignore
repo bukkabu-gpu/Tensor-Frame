@@ -1,1 +1,39 @@
-/target
+# Rust/Cargo
+target/
+**/*.rs.bk
+
+# Build artifacts
+*.rlib
+*.rmeta
+
+# Executables and debugging
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.o
+*.obj
+*.pyc
+*.pdb
+*.log
+
+# IDEs and tools
+.idea/
+.vscode/
+*.swp
+*.swo
+*.bak
+
+# MacOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# By Cargo
+Cargo.lock
+
+/docs/book
