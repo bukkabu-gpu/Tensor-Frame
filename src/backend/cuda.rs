@@ -1,22 +1,28 @@
 use super::{Backend, BackendType, CudaStorage, Storage};
 use crate::error::{Result, TensorError};
 use crate::tensor::{dtype::DType, shape::Shape};
+#[cfg(feature = "cuda")]
+use cudarc::driver::DevicePtr;
 
 #[derive(Debug)]
 pub struct CudaBackend {
     #[cfg(feature = "cuda")]
-    device: std::sync::Arc<cudarc::driver::CudaDevice>,
+    context: std::sync::Arc<cudarc::driver::CudaContext>,
 }
 
 impl CudaBackend {
     pub fn new() -> Result<Self> {
         #[cfg(feature = "cuda")]
         {
-            // Try to initialize CUDA device
-            match cudarc::driver::CudaDevice::new(0) {
-                Ok(device) => Ok(CudaBackend {
-                    device: std::sync::Arc::new(device),
-                }),
+            // Try to initialize CUDA context
+            match cudarc::driver::CudaContext::new(0) {
+                Ok(context) => {
+                    // Optional: disable event tracking for performance
+                    unsafe { context.disable_event_tracking(); }
+                    Ok(CudaBackend {
+                        context,
+                    })
+                },
                 Err(e) => Err(TensorError::BackendError(format!(
                     "Failed to initialize CUDA: {}",
                     e
@@ -35,8 +41,8 @@ impl CudaBackend {
 pub fn is_available() -> bool {
     #[cfg(feature = "cuda")]
     {
-        // Try to create a simple CUDA device to check availability
-        cudarc::driver::CudaDevice::new(0).is_ok()
+        // Try to create a simple CUDA context to check availability
+        cudarc::driver::CudaContext::new(0).is_ok()
     }
     #[cfg(not(feature = "cuda"))]
     {
@@ -57,11 +63,11 @@ impl Backend for CudaBackend {
         #[cfg(feature = "cuda")]
         {
             let size = shape.numel();
-            let byte_size = size * std::mem::size_of::<f32>();
+            let stream = self.context.default_stream();
             
-            match self.device.alloc_zeros::<f32>(size) {
+            match stream.alloc_zeros::<f32>(size) {
                 Ok(buf) => {
-                    let ptr = buf.device_ptr() as *mut f32;
+                    let ptr = buf.device_ptr(&stream).0 as *mut f32;
                     // Store the buffer to keep it alive - in real implementation
                     // you'd want to store this properly
                     std::mem::forget(buf);
@@ -89,7 +95,7 @@ impl Backend for CudaBackend {
         {
             // For now, allocate zeros and then fill with ones
             // In a real implementation, you'd use a CUDA kernel
-            let zeros_storage = self.zeros(shape, _dtype)?;
+            let _zeros_storage = self.zeros(shape, _dtype)?;
             // TODO: Launch CUDA kernel to fill with ones
             // For now, return an error to indicate not implemented
             Err(TensorError::BackendError(
@@ -114,9 +120,10 @@ impl Backend for CudaBackend {
                 });
             }
 
-            match self.device.htod_copy(data.to_vec()) {
+            let stream = self.context.default_stream();
+            match stream.memcpy_stod(data) {
                 Ok(buf) => {
-                    let ptr = buf.device_ptr() as *mut f32;
+                    let ptr = buf.device_ptr(&stream).0 as *mut f32;
                     std::mem::forget(buf); // Keep buffer alive
                     Ok(Storage::Cuda(CudaStorage {
                         ptr,
@@ -183,7 +190,7 @@ impl Backend for CudaBackend {
         #[cfg(feature = "cuda")]
         {
             match storage {
-                Storage::Cuda(cuda_storage) => {
+                Storage::Cuda(_cuda_storage) => {
                     // For now, return an error since we need proper device buffer management
                     Err(TensorError::BackendError(
                         "CUDA to_vec not yet implemented - needs proper buffer management".to_string(),
