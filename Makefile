@@ -1,20 +1,27 @@
 
 # Development targets
-test:
-	cargo test --workspace --all-targets
-	cargo check --workspace --examples --all-targets
+test-cpu:
+	cargo test --workspace --all-targets --no-default-features --features "cpu,debug"
+	cargo check --workspace --examples --all-targets --no-default-features --features "cpu,debug"
 
 test-wgpu:
-	cargo test --workspace --all-targets --features "wgpu"
-	cargo check --workspace --examples --all-targets --features "wgpu"
+	cargo test --workspace --all-targets --no-default-features --features "wgpu,debug"
+	cargo check --workspace --examples --all-targets --no-default-features --features "wgpu,debug"
 
 test-cuda:
-	cargo test --workspace --all-targets --features "cuda"
-	cargo check --workspace --examples --all-targets --features "cuda"
+	cargo test --workspace --all-targets --no-default-features --features "cuda,debug"
+	cargo check --workspace --examples --all-targets --no-default-features --features "cuda,debug"
 
-test-all:
-	cargo test --workspace --all-targets --all-features
-	cargo check --workspace --examples --all-targets --all-features
+example-cpu:
+	cargo run --example basic_operations --no-default-features --features "cpu,debug"
+
+example-wgpu:
+	cargo run --example basic_operations --no-default-features --features "wgpu,debug"
+
+example-cuda:
+	cargo run --example basic_operations --no-default-features --features "cuda,debug"
+
+test: test-cpu test-wgpu test-cuda
 
 # Code quality
 fmt:
@@ -51,4 +58,4 @@ clean:
 	cargo clean
 	rm -rf docs/book
 
-.PHONY: test test-wgpu test-cuda test-all fmt clippy docs docs-book docs-serve docs-test publish-check publish check-all clean
+.PHONY: test test-wgpu test-cuda test-cpu fmt clippy docs docs-book docs-serve docs-test publish-check publish check-all clean

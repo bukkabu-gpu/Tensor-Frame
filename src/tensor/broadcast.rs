@@ -31,8 +31,6 @@ fn broadcast_single(data: &[f32], from_shape: &Shape, to_shape: &Shape) -> Resul
 
     let from_dims = from_shape.dims();
     let to_dims = to_shape.dims();
-    let _to_stride = to_shape.stride();
-    let from_stride = from_shape.stride();
 
     // Handle broadcasting by expanding dimensions
     let dim_offset = to_dims.len() - from_dims.len();
@@ -52,7 +50,11 @@ fn broadcast_single(data: &[f32], from_shape: &Shape, to_shape: &Shape) -> Resul
                 if from_dim == 1 {
                     // Broadcasting: use index 0 for this dimension
                 } else {
-                    from_idx += coord * from_stride[from_dim_idx];
+                    let mut stride = 1;
+                    for j in (from_dim_idx + 1)..from_dims.len() {
+                        stride *= from_dims[j];
+                    }
+                    from_idx += coord * stride;
                 }
             }
         }

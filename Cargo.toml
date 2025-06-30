@@ -1,6 +1,6 @@
 [package]
 name = "tensor-frame"
-version = "0.1.0"
+version = "0.0.1-alpha"
 edition = "2021"
 authors = ["Your Name <your.email@example.com>"]
 description = "A PyTorch-like tensor library for Rust with CPU, WGPU, and CUDA backends"
@@ -28,6 +28,8 @@ default = ["cpu"]
 cpu = ["rayon"]
 wgpu = ["dep:wgpu", "dep:bytemuck", "dep:futures", "dep:tokio"]
 cuda = ["dep:cudarc"]
+debug = []
 
 [dev-dependencies]
 criterion = "0.5"
+

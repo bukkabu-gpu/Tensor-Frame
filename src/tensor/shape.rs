@@ -1,4 +1,4 @@
-use crate::error::{Result, TensorError};
+use crate::error::Result;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Shape {
@@ -7,16 +7,11 @@ pub struct Shape {
 
 impl Shape {
     pub fn new(dims: Vec<usize>) -> Result<Self> {
-        if dims.is_empty() {
-            return Err(TensorError::InvalidShape(
-                "Shape cannot be empty".to_string(),
-            ));
-        }
         Ok(Shape { dims })
     }
 
     pub fn scalar() -> Self {
-        Shape { dims: vec![1] }
+        Shape { dims: vec![] }
     }
 
     pub fn dims(&self) -> &[usize] {
@@ -28,86 +23,63 @@ impl Shape {
     }
 
     pub fn numel(&self) -> usize {
-        self.dims.iter().product()
-    }
-
-    pub fn stride(&self) -> Vec<usize> {
-        let mut stride = vec![1; self.ndim()];
-        for i in (0..self.ndim() - 1).rev() {
-            stride[i] = stride[i + 1] * self.dims[i + 1];
+        if self.dims.is_empty() {
+            1
+        } else {
+            self.dims.iter().product()
         }
-        stride
     }
 
-    pub fn broadcast_with(&self, other: &Shape) -> Result<Shape> {
-        let ndim = self.ndim().max(other.ndim());
-        let mut result_dims = vec![1; ndim];
+    pub fn can_broadcast_to(&self, other: &Shape) -> bool {
+        let self_dims = &self.dims;
+        let other_dims = &other.dims;
 
-        for i in 0..ndim {
-            let self_dim = if i < ndim - self.ndim() {
-                1
-            } else {
-                self.dims[i - (ndim - self.ndim())]
-            };
-
-            let other_dim = if i < ndim - other.ndim() {
-                1
-            } else {
-                other.dims[i - (ndim - other.ndim())]
-            };
-
-            if self_dim == other_dim {
-                result_dims[i] = self_dim;
-            } else if self_dim == 1 {
-                result_dims[i] = other_dim;
-            } else if other_dim == 1 {
-                result_dims[i] = self_dim;
-            } else {
-                return Err(TensorError::BroadcastError(format!(
-                    "Cannot broadcast shapes {:?} and {:?}",
-                    self.dims, other.dims
-                )));
-            }
-        }
-
-        Ok(Shape { dims: result_dims })
-    }
-
-    pub fn can_broadcast_to(&self, target: &Shape) -> bool {
-        if self.ndim() > target.ndim() {
+        if self_dims.len() > other_dims.len() {
             return false;
         }
 
-        let offset = target.ndim() - self.ndim();
-        for i in 0..self.ndim() {
-            let self_dim = self.dims[i];
-            let target_dim = target.dims[i + offset];
-            if self_dim != target_dim && self_dim != 1 {
+        let offset = other_dims.len() - self_dims.len();
+
+        for (i, &self_dim) in self_dims.iter().enumerate() {
+            let other_dim = other_dims[i + offset];
+            if self_dim != 1 && self_dim != other_dim {
                 return false;
             }
         }
+
         true
     }
 
-    pub fn flatten_index(&self, indices: &[usize]) -> Result<usize> {
-        if indices.len() != self.ndim() {
-            return Err(TensorError::DimensionMismatch {
-                expected: self.ndim(),
-                got: indices.len(),
-            });
-        }
+    pub fn broadcast_shape(&self, other: &Shape) -> Option<Shape> {
+        let self_dims = &self.dims;
+        let other_dims = &other.dims;
 
-        for (i, &idx) in indices.iter().enumerate() {
-            if idx >= self.dims[i] {
-                return Err(TensorError::InvalidIndex {
-                    index: indices.to_vec(),
-                    shape: self.dims.clone(),
-                });
+        let max_len = self_dims.len().max(other_dims.len());
+        let mut result_dims = vec![1; max_len];
+
+        for i in 0..max_len {
+            let self_dim = if i < self_dims.len() {
+                self_dims[self_dims.len() - 1 - i]
+            } else {
+                1
+            };
+
+            let other_dim = if i < other_dims.len() {
+                other_dims[other_dims.len() - 1 - i]
+            } else {
+                1
+            };
+
+            if self_dim == 1 {
+                result_dims[max_len - 1 - i] = other_dim;
+            } else if other_dim == 1 || self_dim == other_dim {
+                result_dims[max_len - 1 - i] = self_dim;
+            } else {
+                return None; // Incompatible shapes
             }
         }
 
-        let stride = self.stride();
-        Ok(indices.iter().zip(stride.iter()).map(|(i, s)| i * s).sum())
+        Some(Shape { dims: result_dims })
     }
 }
 

@@ -1,9 +1,9 @@
-mod broadcast;
+pub mod broadcast;
 pub mod dtype;
 pub mod ops;
 pub mod shape;
 
-use crate::backend::{Backend, Storage, BACKEND};
+use crate::backend::{Storage, BACKENDS};
 use crate::error::{Result, TensorError};
 use broadcast::broadcast_data;
 use dtype::DType;
@@ -11,66 +11,78 @@ use ops::TensorOps;
 use shape::Shape;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
-use std::sync::Arc;
 
 #[derive(Debug, Clone)]
 pub struct Tensor {
     storage: Storage,
     shape: Shape,
     dtype: DType,
-    backend: Arc<dyn Backend>,
 }
 
 impl Tensor {
     pub fn zeros(shape: impl Into<Shape>) -> Result<Self> {
-        Self::zeros_with_backend(shape, BACKEND.clone())
-    }
-
-    pub fn zeros_with_backend(shape: impl Into<Shape>, backend: Arc<dyn Backend>) -> Result<Self> {
         let shape = shape.into();
         let dtype = DType::F32;
-        let storage = backend.zeros(&shape, dtype)?;
-        Ok(Tensor {
-            storage,
-            shape,
-            dtype,
-            backend,
-        })
+        for backend in &BACKENDS[0..] {
+            match backend.zeros(&shape, dtype) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape,
+                        dtype,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could create zeros tensor".to_string(),
+        ))
     }
 
     pub fn ones(shape: impl Into<Shape>) -> Result<Self> {
-        Self::ones_with_backend(shape, BACKEND.clone())
-    }
-
-    pub fn ones_with_backend(shape: impl Into<Shape>, backend: Arc<dyn Backend>) -> Result<Self> {
         let shape = shape.into();
         let dtype = DType::F32;
-        let storage = backend.ones(&shape, dtype)?;
-        Ok(Tensor {
-            storage,
-            shape,
-            dtype,
-            backend,
-        })
+        for backend in &BACKENDS[0..] {
+            match backend.ones(&shape, dtype) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape,
+                        dtype,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could create ones tensor".to_string(),
+        ))
     }
 
     pub fn from_vec(data: Vec<f32>, shape: impl Into<Shape>) -> Result<Self> {
-        Self::from_vec_with_backend(data, shape, BACKEND.clone())
-    }
-
-    pub fn from_vec_with_backend(
-        data: Vec<f32>,
-        shape: impl Into<Shape>,
-        backend: Arc<dyn Backend>,
-    ) -> Result<Self> {
         let shape = shape.into();
-        let storage = backend.from_slice(&data, &shape)?;
-        Ok(Tensor {
-            storage,
-            shape,
-            dtype: DType::F32,
-            backend,
-        })
+        if data.len() != shape.numel() {
+            return Err(TensorError::ShapeMismatch {
+                expected: vec![shape.numel()],
+                got: vec![data.len()],
+            });
+        }
+        for backend in &BACKENDS[0..] {
+            match backend.from_slice(&data, &shape) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape,
+                        dtype: DType::F32,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could create tensor from vector".to_string(),
+        ))
     }
 
     pub fn shape(&self) -> &Shape {
@@ -79,14 +91,6 @@ impl Tensor {
 
     pub fn dtype(&self) -> DType {
         self.dtype
-    }
-
-    pub fn backend(&self) -> &Arc<dyn Backend> {
-        &self.backend
-    }
-
-    pub fn backend_type(&self) -> crate::backend::BackendType {
-        self.backend.backend_type()
     }
 
     pub fn ndim(&self) -> usize {
@@ -98,35 +102,15 @@ impl Tensor {
     }
 
     pub fn to_vec(&self) -> Result<Vec<f32>> {
-        self.backend.to_vec_f32(&self.storage)
-    }
-
-    pub fn get(&self, indices: &[usize]) -> Result<f32> {
-        let flat_idx = self.shape.flatten_index(indices)?;
-        let data = self.to_vec()?;
-        Ok(data[flat_idx])
-    }
-
-    pub fn to_backend(&self, backend: Arc<dyn Backend>) -> Result<Self> {
-        if self.backend.backend_type() == backend.backend_type() {
-            return Ok(self.clone());
+        for backend in &BACKENDS[0..] {
+            match backend.to_vec_f32(&self.storage) {
+                Ok(vec) => return Ok(vec),
+                Err(_) => continue,
+            }
         }
-
-        let data = self.to_vec()?;
-        Self::from_vec_with_backend(data, self.shape.dims().to_vec(), backend)
-    }
-
-    fn ensure_same_backend(&self, other: &Self) -> Result<()> {
-        if self.backend.backend_type() != other.backend.backend_type() {
-            return Err(TensorError::BackendError(
-                "Tensors must be on the same backend".to_string(),
-            ));
-        }
-        Ok(())
-    }
-
-    fn broadcast_shapes(&self, other: &Self) -> Result<Shape> {
-        self.shape.broadcast_with(&other.shape)
+        Err(TensorError::BackendError(
+            "No backend could convert storage to Vec<f32>".to_string(),
+        ))
     }
 }
 
@@ -134,31 +118,80 @@ impl Add for Tensor {
     type Output = Result<Tensor>;
 
     fn add(self, other: Self) -> Self::Output {
-        self.ensure_same_backend(&other)?;
-        let result_shape = self.broadcast_shapes(&other)?;
+        // Check if shapes are compatible for broadcasting
+        let result_shape = if self.shape == other.shape {
+            self.shape.clone()
+        } else if let Some(broadcasted_shape) = self.shape.broadcast_shape(&other.shape) {
+            broadcasted_shape
+        } else {
+            return Err(TensorError::ShapeMismatch {
+                expected: self.shape.dims().to_vec(),
+                got: other.shape.dims().to_vec(),
+            });
+        };
 
-        // Get data and broadcast if necessary
-        let lhs_data = self.to_vec()?;
-        let rhs_data = other.to_vec()?;
+        #[cfg(feature = "debug")]
+        {
+            println!(
+                "Adding tensors with shapes {:?} and {:?}",
+                self.shape, other.shape
+            );
+            println!("Backend length: {}", BACKENDS.len());
+        }
+
+        // If shapes are the same, try backends directly
+        if self.shape == other.shape {
+            for backend in &BACKENDS[0..] {
+                match backend.add(&self.storage, &other.storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                            dtype: self.dtype,
+                        })
+                    }
+                    Err(_) => continue,
+                }
+            }
+        }
+
+        // Handle broadcasting by converting to CPU and using broadcast_data
+        let self_data = self.to_vec()?;
+        let other_data = other.to_vec()?;
 
         let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &lhs_data,
+            &self_data,
             &self.shape,
-            &rhs_data,
+            &other_data,
             &other.shape,
             &result_shape,
         )?;
 
-        let lhs_storage = self.backend.from_slice(&lhs_broadcasted, &result_shape)?;
-        let rhs_storage = self.backend.from_slice(&rhs_broadcasted, &result_shape)?;
-        let storage = self.backend.add(&lhs_storage, &rhs_storage)?;
+        // Create tensors with broadcasted data and try backends
+        for backend in &BACKENDS[0..] {
+            match (
+                backend.from_slice(&lhs_broadcasted, &result_shape),
+                backend.from_slice(&rhs_broadcasted, &result_shape),
+            ) {
+                (Ok(lhs_storage), Ok(rhs_storage)) => {
+                    match backend.add(&lhs_storage, &rhs_storage) {
+                        Ok(storage) => {
+                            return Ok(Tensor {
+                                storage,
+                                shape: result_shape,
+                                dtype: self.dtype,
+                            })
+                        }
+                        Err(_) => continue,
+                    }
+                }
+                _ => continue,
+            }
+        }
 
-        Ok(Tensor {
-            storage,
-            shape: result_shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        Err(TensorError::BackendError(
+            "No backend could perform add operation".to_string(),
+        ))
     }
 }
 
@@ -166,15 +199,28 @@ impl Sub for Tensor {
     type Output = Result<Tensor>;
 
     fn sub(self, other: Self) -> Self::Output {
-        self.ensure_same_backend(&other)?;
-        let result_shape = self.broadcast_shapes(&other)?;
-        let storage = self.backend.sub(&self.storage, &other.storage)?;
-        Ok(Tensor {
-            storage,
-            shape: result_shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        if self.shape != other.shape {
+            return Err(TensorError::ShapeMismatch {
+                expected: self.shape.dims().to_vec(),
+                got: other.shape.dims().to_vec(),
+            });
+        }
+        for backend in &BACKENDS[0..] {
+            match backend.sub(&self.storage, &other.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape,
+                        dtype: self.dtype,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+
+        Err(TensorError::BackendError(
+            "No backend could perform sub operation".to_string(),
+        ))
     }
 }
 
@@ -182,15 +228,28 @@ impl Mul for Tensor {
     type Output = Result<Tensor>;
 
     fn mul(self, other: Self) -> Self::Output {
-        self.ensure_same_backend(&other)?;
-        let result_shape = self.broadcast_shapes(&other)?;
-        let storage = self.backend.mul(&self.storage, &other.storage)?;
-        Ok(Tensor {
-            storage,
-            shape: result_shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        if self.shape != other.shape {
+            return Err(TensorError::ShapeMismatch {
+                expected: self.shape.dims().to_vec(),
+                got: other.shape.dims().to_vec(),
+            });
+        }
+        for backend in &BACKENDS[0..] {
+            match backend.mul(&self.storage, &other.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape,
+                        dtype: self.dtype,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+
+        Err(TensorError::BackendError(
+            "No backend could perform mul operation".to_string(),
+        ))
     }
 }
 
@@ -198,61 +257,76 @@ impl Div for Tensor {
     type Output = Result<Tensor>;
 
     fn div(self, other: Self) -> Self::Output {
-        self.ensure_same_backend(&other)?;
-        let result_shape = self.broadcast_shapes(&other)?;
-        let storage = self.backend.div(&self.storage, &other.storage)?;
-        Ok(Tensor {
-            storage,
-            shape: result_shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        if self.shape != other.shape {
+            return Err(TensorError::ShapeMismatch {
+                expected: self.shape.dims().to_vec(),
+                got: other.shape.dims().to_vec(),
+            });
+        }
+        for backend in &BACKENDS[0..] {
+            match backend.div(&self.storage, &other.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape,
+                        dtype: self.dtype,
+                    })
+                }
+                Err(_) => continue,
+            }
+        }
+
+        Err(TensorError::BackendError(
+            "No backend could perform div operation".to_string(),
+        ))
     }
 }
 
 impl TensorOps for Tensor {
-    fn matmul(&self, other: &Self) -> Result<Self> {
-        self.ensure_same_backend(other)?;
-        let storage = self.backend.matmul(&self.storage, &other.storage)?;
-        // TODO: Calculate proper output shape for matmul
-        Ok(Tensor {
-            storage,
-            shape: self.shape.clone(),
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
-    }
-
     fn sum(&self, axis: Option<usize>) -> Result<Self> {
-        let storage = self.backend.sum(&self.storage, axis)?;
-        let shape = if axis.is_none() {
-            Shape::scalar()
-        } else {
-            // TODO: Calculate reduced shape
-            self.shape.clone()
-        };
-        Ok(Tensor {
-            storage,
-            shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        for backend in &BACKENDS[0..] {
+            match backend.sum(&self.storage, axis) {
+                Ok(storage) => {
+                    let shape = if axis.is_none() {
+                        Shape::scalar()
+                    } else {
+                        self.shape.clone()
+                    };
+                    return Ok(Tensor {
+                        storage,
+                        shape,
+                        dtype: self.dtype,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform sum operation".to_string(),
+        ))
     }
 
     fn mean(&self, axis: Option<usize>) -> Result<Self> {
-        let storage = self.backend.mean(&self.storage, axis)?;
-        let shape = if axis.is_none() {
-            Shape::scalar()
-        } else {
-            // TODO: Calculate reduced shape
-            self.shape.clone()
-        };
-        Ok(Tensor {
-            storage,
-            shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        for backend in &BACKENDS[0..] {
+            match backend.mean(&self.storage, axis) {
+                Ok(storage) => {
+                    let shape = if axis.is_none() {
+                        Shape::scalar()
+                    } else {
+                        self.shape.clone()
+                    };
+                    return Ok(Tensor {
+                        storage,
+                        shape,
+                        dtype: self.dtype,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform mean operation".to_string(),
+        ))
     }
 
     fn reshape(&self, new_shape: Vec<usize>) -> Result<Self> {
@@ -267,7 +341,6 @@ impl TensorOps for Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
             dtype: self.dtype,
-            backend: self.backend.clone(),
         })
     }
 
@@ -277,15 +350,23 @@ impl TensorOps for Tensor {
                 "Transpose only supports 2D tensors".to_string(),
             ));
         }
-        let dims = self.shape.dims();
-        let new_shape = Shape::new(vec![dims[1], dims[0]])?;
-        // TODO: Implement actual transpose logic
-        Ok(Tensor {
-            storage: self.storage.clone(),
-            shape: new_shape,
-            dtype: self.dtype,
-            backend: self.backend.clone(),
-        })
+        for backend in &BACKENDS[0..] {
+            match backend.transpose(&self.storage, &self.shape) {
+                Ok(storage) => {
+                    let dims = self.shape.dims();
+                    let new_shape = Shape::new(vec![dims[1], dims[0]])?;
+                    return Ok(Tensor {
+                        storage,
+                        shape: new_shape,
+                        dtype: self.dtype,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform transpose operation".to_string(),
+        ))
     }
 
     fn squeeze(&self, axis: Option<usize>) -> Result<Self> {
@@ -311,7 +392,6 @@ impl TensorOps for Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
             dtype: self.dtype,
-            backend: self.backend.clone(),
         })
     }
 
@@ -330,7 +410,6 @@ impl TensorOps for Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
             dtype: self.dtype,
-            backend: self.backend.clone(),
         })
     }
 }
@@ -342,8 +421,9 @@ impl fmt::Display for Tensor {
 
         write!(f, "Tensor(")?;
 
-        if shape.len() == 1 {
-            // 1D tensor: [1, 2, 3, 4]
+        if shape.is_empty() {
+            write!(f, "{:.4}", data[0])?;
+        } else if shape.len() == 1 {
             write!(f, "[")?;
             for (i, &val) in data.iter().enumerate() {
                 if i > 0 {
@@ -353,7 +433,6 @@ impl fmt::Display for Tensor {
             }
             write!(f, "]")?;
         } else if shape.len() == 2 {
-            // 2D tensor: [[1, 2], [3, 4]]
             write!(f, "[")?;
             for row in 0..shape[0] {
                 if row > 0 {
@@ -371,7 +450,6 @@ impl fmt::Display for Tensor {
             }
             write!(f, "]")?;
         } else {
-            // Higher dimensional tensors: show shape and first few elements
             write!(f, "shape={:?}, data=[", shape)?;
             let max_display = 8.min(data.len());
             for (i, &val) in data.iter().take(max_display).enumerate() {
@@ -386,11 +464,6 @@ impl fmt::Display for Tensor {
             write!(f, "]")?;
         }
 
-        write!(
-            f,
-            ", dtype={}, backend={:?})",
-            self.dtype,
-            self.backend_type()
-        )
+        write!(f, ", dtype={})", self.dtype)
     }
 }

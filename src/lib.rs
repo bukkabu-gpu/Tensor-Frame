@@ -2,7 +2,7 @@ pub mod backend;
 pub mod error;
 pub mod tensor;
 
-pub use backend::{Backend, BackendType};
+pub use backend::Backend;
 pub use error::{Result, TensorError};
 pub use tensor::{dtype::DType, ops::TensorOps, shape::Shape, Tensor};
 
@@ -11,7 +11,7 @@ mod tests {
     use super::*;
 
     // ==== TENSOR CREATION TESTS ====
-    
+
     #[test]
     fn test_tensor_zeros() {
         let tensor = Tensor::zeros(vec![2, 3]).unwrap();
@@ -55,7 +55,7 @@ mod tests {
     #[test]
     fn test_tensor_scalar() {
         let tensor = Tensor::from_vec(vec![42.0], vec![]).unwrap();
-        assert_eq!(tensor.shape().dims(), &[]);
+        assert_eq!(tensor.shape().dims(), &[] as &[usize]);
         assert_eq!(tensor.numel(), 1);
         assert_eq!(tensor.to_vec().unwrap(), vec![42.0]);
     }
@@ -99,7 +99,7 @@ mod tests {
         let a = Tensor::ones(vec![2, 2]).unwrap();
         let b = Tensor::from_vec(vec![2.0, 2.0, 2.0, 2.0], vec![2, 2]).unwrap();
         let c = Tensor::from_vec(vec![3.0, 3.0, 3.0, 3.0], vec![2, 2]).unwrap();
-        
+
         let result = ((a + b).unwrap() * c).unwrap();
         assert_eq!(result.to_vec().unwrap(), vec![9.0, 9.0, 9.0, 9.0]);
     }
@@ -140,9 +140,9 @@ mod tests {
     fn test_broadcast_scalar() {
         let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         let b = Tensor::from_vec(vec![5.0], vec![]).unwrap(); // scalar
-        // Test shape compatibility
+                                                              // Test shape compatibility
         assert_eq!(a.shape().dims(), &[2, 2]);
-        assert_eq!(b.shape().dims(), &[]);
+        assert_eq!(b.shape().dims(), &[] as &[usize]);
     }
 
     // ==== REDUCTION OPERATION TESTS ====
@@ -182,7 +182,10 @@ mod tests {
         let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap();
         let reshaped = tensor.reshape(vec![3, 2]).unwrap();
         assert_eq!(reshaped.shape().dims(), &[3, 2]);
-        assert_eq!(reshaped.to_vec().unwrap(), vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        assert_eq!(
+            reshaped.to_vec().unwrap(),
+            vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+        );
     }
 
     #[test]
@@ -199,7 +202,10 @@ mod tests {
         let transposed = tensor.transpose().unwrap();
         assert_eq!(transposed.shape().dims(), &[3, 2]);
         // For 2x3 -> 3x2 transpose: [[1,2,3],[4,5,6]] -> [[1,4],[2,5],[3,6]]
-        assert_eq!(transposed.to_vec().unwrap(), vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]);
+        assert_eq!(
+            transposed.to_vec().unwrap(),
+            vec![1.0, 4.0, 2.0, 5.0, 3.0, 6.0]
+        );
     }
 
     // ==== ERROR HANDLING TESTS ====
@@ -222,8 +228,8 @@ mod tests {
         let result = a + b;
         // This should either work with broadcasting or fail gracefully
         match result {
-            Ok(_) => {}, // Broadcasting worked
-            Err(_) => {}, // Expected failure for incompatible shapes
+            Ok(_) => {}  // Broadcasting worked
+            Err(_) => {} // Expected failure for incompatible shapes
         }
     }
 
@@ -248,7 +254,7 @@ mod tests {
     fn test_empty_tensor() {
         let tensor = Tensor::zeros(vec![0]).unwrap();
         assert_eq!(tensor.numel(), 0);
-        assert_eq!(tensor.to_vec().unwrap(), vec![]);
+        assert_eq!(tensor.to_vec().unwrap(), Vec::<f32>::new());
     }
 
     #[test]
@@ -262,10 +268,10 @@ mod tests {
     fn test_operations_with_negative_numbers() {
         let a = Tensor::from_vec(vec![-1.0, -2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         let b = Tensor::from_vec(vec![1.0, 2.0, -3.0, -4.0], vec![2, 2]).unwrap();
-        
+
         let sum = (a.clone() + b.clone()).unwrap();
         assert_eq!(sum.to_vec().unwrap(), vec![0.0, 0.0, 0.0, 0.0]);
-        
+
         let product = (a * b).unwrap();
         assert_eq!(product.to_vec().unwrap(), vec![-1.0, -4.0, -9.0, -16.0]);
     }
@@ -274,10 +280,10 @@ mod tests {
     fn test_operations_with_zero() {
         let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         let zeros = Tensor::zeros(vec![2, 2]).unwrap();
-        
+
         let sum = (a.clone() + zeros.clone()).unwrap();
         assert_eq!(sum.to_vec().unwrap(), vec![1.0, 2.0, 3.0, 4.0]);
-        
+
         let product = (a * zeros).unwrap();
         assert_eq!(product.to_vec().unwrap(), vec![0.0, 0.0, 0.0, 0.0]);
     }

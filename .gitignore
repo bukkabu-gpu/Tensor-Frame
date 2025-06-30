@@ -19,8 +19,7 @@ target/
 *.log
 
 # IDEs and tools
-.idea/
-.vscode/
+.claude/
 *.swp
 *.swo
 *.bak
