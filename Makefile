@@ -1,16 +1,16 @@
 
 # Development targets
 test-cpu:
-	cargo test --workspace --all-targets --no-default-features --features "cpu,debug"
 	cargo check --workspace --examples --all-targets --no-default-features --features "cpu,debug"
-
+	cargo test --workspace --all-targets --no-default-features --features "cpu,debug"
+	
 test-wgpu:
-	cargo test --workspace --all-targets --no-default-features --features "wgpu,debug"
 	cargo check --workspace --examples --all-targets --no-default-features --features "wgpu,debug"
+	cargo test --workspace --all-targets --no-default-features --features "wgpu,debug"
 
 test-cuda:
-	cargo test --workspace --all-targets --no-default-features --features "cuda,debug"
 	cargo check --workspace --examples --all-targets --no-default-features --features "cuda,debug"
+	cargo test --workspace --all-targets --no-default-features --features "cuda,debug"
 
 example-cpu:
 	cargo run --example basic_operations --no-default-features --features "cpu,debug"
@@ -23,9 +23,17 @@ example-cuda:
 
 test: test-cpu test-wgpu test-cuda
 
+check-examples:
+	cargo check --examples --no-default-features --features "cpu,debug"
+	cargo check --examples --no-default-features --features "wgpu,debug"
+	cargo check --examples --no-default-features --features "cuda,debug"
+
 # Code quality
 fmt:
 	cargo fmt --all
+
+fmt-check:
+	cargo fmt --all -- --check
 
 clippy:
 	cargo clippy --all-features -- -D warnings
