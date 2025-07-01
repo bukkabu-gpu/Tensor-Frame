@@ -8,12 +8,6 @@ on:
       - 'README.md'
       - 'CLAUDE.md'
       - '.github/workflows/docs.yml'
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'docs/**'
-      - 'README.md'
-      - 'CLAUDE.md'
   workflow_dispatch:  # Allow manual triggering
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
