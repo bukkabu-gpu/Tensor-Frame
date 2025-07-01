@@ -11,8 +11,8 @@ env:
 
 jobs:
   test:
+    runs-on: [self-hosted]
     name: Test and Format Check
-    runs-on: ubuntu-latest
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -34,5 +34,9 @@ jobs:
       #     commit_message: 'style: Auto-format code with cargo fmt'
       #     file_pattern: '*.rs'
 
-      - name: Run tests
-        run: make test
+      - name: Run cpu tests
+        run: make test-cpu
+      - name: Run wgpu tests
+        run: make test-wgpu
+      - name: Run cuda tests
+        run: make test-cuda

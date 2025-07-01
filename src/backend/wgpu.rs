@@ -6,7 +6,7 @@ use std::sync::Arc;
 #[cfg(feature = "wgpu")]
 use {
     bytemuck, futures, tokio,
-    wgpu::{Buffer, BufferUsages, CommandEncoder, Device, Queue},
+    wgpu::{Buffer, BufferUsages, Device, Queue},
 };
 
 #[derive(Debug)]
@@ -163,7 +163,7 @@ impl WgpuBackend {
         });
 
         // Poll device in wgpu v25
-        self.device.poll(wgpu::MaintainBase::Wait);
+        let _ = self.device.poll(wgpu::MaintainBase::Wait);
 
         let rt = tokio::runtime::Runtime::new().map_err(|e| {
             TensorError::BackendError(format!("Failed to create tokio runtime: {}", e))
@@ -422,12 +422,8 @@ impl Backend for WgpuBackend {
             let lhs_storage = self.from_slice(&lhs_data, &shape)?;
             let rhs_storage = self.from_slice(&rhs_data, &shape)?;
 
-            match (&lhs_storage, &rhs_storage) {
-                (Storage::Wgpu(a), Storage::Wgpu(b)) => self.binary_operation(a, b, "add"),
-                _ => Err(TensorError::BackendError(
-                    "Failed to create WGPU storage".to_string(),
-                )),
-            }
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_storage, &rhs_storage);
+            self.binary_operation(a, b, "add")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -452,12 +448,8 @@ impl Backend for WgpuBackend {
             let lhs_storage = self.from_slice(&lhs_data, &shape)?;
             let rhs_storage = self.from_slice(&rhs_data, &shape)?;
 
-            match (&lhs_storage, &rhs_storage) {
-                (Storage::Wgpu(a), Storage::Wgpu(b)) => self.binary_operation(a, b, "sub"),
-                _ => Err(TensorError::BackendError(
-                    "Failed to create WGPU storage".to_string(),
-                )),
-            }
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_storage, &rhs_storage);
+            self.binary_operation(a, b, "sub")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -482,12 +474,8 @@ impl Backend for WgpuBackend {
             let lhs_storage = self.from_slice(&lhs_data, &shape)?;
             let rhs_storage = self.from_slice(&rhs_data, &shape)?;
 
-            match (&lhs_storage, &rhs_storage) {
-                (Storage::Wgpu(a), Storage::Wgpu(b)) => self.binary_operation(a, b, "mul"),
-                _ => Err(TensorError::BackendError(
-                    "Failed to create WGPU storage".to_string(),
-                )),
-            }
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_storage, &rhs_storage);
+            self.binary_operation(a, b, "mul")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -512,12 +500,8 @@ impl Backend for WgpuBackend {
             let lhs_storage = self.from_slice(&lhs_data, &shape)?;
             let rhs_storage = self.from_slice(&rhs_data, &shape)?;
 
-            match (&lhs_storage, &rhs_storage) {
-                (Storage::Wgpu(a), Storage::Wgpu(b)) => self.binary_operation(a, b, "div"),
-                _ => Err(TensorError::BackendError(
-                    "Failed to create WGPU storage".to_string(),
-                )),
-            }
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_storage, &rhs_storage);
+            self.binary_operation(a, b, "div")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
