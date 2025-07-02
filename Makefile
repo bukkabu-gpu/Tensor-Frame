@@ -1,16 +1,18 @@
-
 # Development targets
+
+TEST_FLAGS = --workspace --lib --all-targets --no-default-features --features
+
 test-cpu:
-	cargo check --workspace --examples --all-targets --no-default-features --features "cpu,debug"
-	cargo test --workspace --all-targets --no-default-features --features "cpu,debug"
-	
+	cargo check $(TEST_FLAGS) "cpu,debug" --examples
+	cargo test $(TEST_FLAGS) "cpu,debug"
+
 test-wgpu:
-	cargo check --workspace --examples --all-targets --no-default-features --features "wgpu,debug"
-	cargo test --workspace --all-targets --no-default-features --features "wgpu,debug"
+	cargo check $(TEST_FLAGS) "wgpu,debug" --examples
+	cargo test $(TEST_FLAGS) "wgpu,debug"
 
 test-cuda:
-	cargo check --workspace --examples --all-targets --no-default-features --features "cuda,debug"
-	cargo test --workspace --all-targets --no-default-features --features "cuda,debug"
+	cargo check $(TEST_FLAGS) "cuda,debug" --examples
+	cargo test $(TEST_FLAGS) "cuda,debug"
 
 example-cpu:
 	cargo run --example basic_operations --no-default-features --features "cpu,debug"

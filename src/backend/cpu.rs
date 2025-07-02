@@ -1,6 +1,6 @@
 use super::{Backend, Storage};
 use crate::error::{Result, TensorError};
-use crate::tensor::{dtype::DType, shape::Shape};
+use crate::tensor::shape::Shape;
 
 #[derive(Debug)]
 pub struct CpuBackend;
@@ -12,12 +12,12 @@ impl CpuBackend {
 }
 
 impl Backend for CpuBackend {
-    fn zeros(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn zeros(&self, shape: &Shape) -> Result<Storage> {
         let size = shape.numel();
         Ok(Storage::Cpu(vec![0.0; size]))
     }
 
-    fn ones(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn ones(&self, shape: &Shape) -> Result<Storage> {
         let size = shape.numel();
         Ok(Storage::Cpu(vec![1.0; size]))
     }

@@ -8,8 +8,8 @@ We welcome contributions to Tensor Frame! This guide will help you get started w
 
 1. **Clone the repository**:
 ```bash
-git clone https://github.com/yourusername/tensor-frame.git
-cd tensor-frame
+git clone https://github.com/TrainPioneers/Tensor-Frame.git
+cd Tensor-Frame
 ```
 
 2. **Install Rust** (if not already installed):

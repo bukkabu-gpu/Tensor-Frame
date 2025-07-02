@@ -5,7 +5,7 @@ The CUDA backend provides high-performance tensor operations on NVIDIA GPUs usin
 ## Features
 
 - **Peak Performance**: Optimized kernels for maximum NVIDIA GPU utilization
-- **cuBLAS Integration**: Hardware-accelerated matrix operations
+- **Optimized Kernels**: Hardware-accelerated tensor operations
 - **Memory Optimization**: Efficient GPU memory management
 - **Mature Ecosystem**: Integration with existing CUDA libraries
 - **Production Ready**: Battle-tested in production environments
@@ -29,7 +29,7 @@ Enable the CUDA backend:
 
 ```toml
 [dependencies]
-tensor-frame = { version = "0.1", features = ["cuda"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["cuda"] }
 ```
 
 **Build Requirements**:
@@ -91,20 +91,6 @@ __global__ void add_kernel(const float* a, const float* b, float* c, int n) {
 }
 ```
 
-### cuBLAS Integration
-Matrix operations leverage cuBLAS:
-
-```rust
-// Matrix multiplication using cuBLAS
-fn matmul_cublas(a: &CudaStorage, b: &CudaStorage) -> Result<CudaStorage> {
-    cublas::gemm(
-        1.0,  // alpha
-        a, b, // input matrices
-        0.0,  // beta  
-        c     // output matrix
-    )
-}
-```
 
 ## Performance Characteristics
 
@@ -112,7 +98,7 @@ fn matmul_cublas(a: &CudaStorage, b: &CudaStorage) -> Result<CudaStorage> {
 - **Compute Throughput**: Maximum FP32/FP16 throughput on NVIDIA hardware
 - **Memory Bandwidth**: Optimal utilization of GPU memory bandwidth  
 - **Kernel Optimization**: Hand-tuned kernels for each operation
-- **Library Integration**: Seamless use of cuBLAS, cuDNN, etc.
+- **Library Integration**: Designed for future integration with cuDNN, etc.
 
 ### Performance Metrics
 Example performance on RTX 4090:
@@ -127,10 +113,10 @@ Example performance on RTX 4090:
 
 #### Optimal Use Cases
 ```rust
-// Large matrix operations
+// Large tensor operations
 let a = Tensor::zeros(vec![4096, 4096])?;
 let b = Tensor::zeros(vec![4096, 4096])?;
-let c = a.matmul(&b)?;  // Excellent cuBLAS performance
+let c = (a * b) + 1.0;  // Excellent GPU performance
 
 // Batch operations
 for batch in large_dataset {
@@ -409,13 +395,6 @@ let result_b = tensor_b.mean(None).execute_on(stream_b)?;
 
 ## Integration with CUDA Ecosystem
 
-### cuBLAS
-Matrix operations automatically use cuBLAS when available:
-
-```rust
-// Automatically uses cuBLAS GEMM
-let result = matrix_a.matmul(&matrix_b)?;
-```
 
 ### cuDNN (Future)
 Planned integration for neural network operations:

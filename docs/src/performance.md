@@ -18,6 +18,7 @@ Tensor Frame's performance characteristics vary significantly based on:
 - **Limitations**: Limited parallelism, memory bandwidth bound for large operations
 
 ```rust
+use tensor_frame::Tensor;
 // CPU optimal: Small tensors and scalar operations
 let small = Tensor::ones(vec![100, 100])?;
 let result = small.sum(None)?;  // ~0.1ms on modern CPU
@@ -29,6 +30,7 @@ let result = small.sum(None)?;  // ~0.1ms on modern CPU
 - **Limitations**: GPU setup overhead (~1-10ms), limited operation support
 
 ```rust
+use tensor_frame::Tensor;
 // WGPU optimal: Large parallel operations
 let large = Tensor::ones(vec![2048, 2048])?
     .to_backend(BackendType::Wgpu)?;
@@ -36,11 +38,12 @@ let result = (large_a * large_b) + large_c;  // ~2ms on modern GPU
 ```
 
 ### CUDA Backend
-- **Best for**: Very large operations (> 1M elements), matrix multiplication, production workloads
+- **Best for**: Very large operations (> 1M elements), production workloads
 - **Strengths**: Peak performance, mature optimizations, cuBLAS integration
 - **Limitations**: NVIDIA-only, CUDA toolkit requirement
 
 ```rust
+use tensor_frame::Tensor;
 // CUDA optimal: Matrix operations and very large tensors
 let matrices = Tensor::ones(vec![4096, 4096])?
     .to_backend(BackendType::Cuda)?;
@@ -92,46 +95,6 @@ fn benchmark_element_wise() -> Result<()> {
 }
 ```
 
-### Matrix Operations
-
-**cuBLAS Performance** (CUDA backend):
-- Highly optimized for large matrices (> 512x512)
-- Can achieve 90%+ of theoretical peak performance
-- Automatically tuned for specific GPU architectures
-
-```rust
-fn matrix_multiplication_performance() -> Result<()> {
-    let sizes = vec![256, 512, 1024, 2048, 4096];
-    
-    for size in sizes {
-        let a = Tensor::ones(vec![size, size])?;
-        let b = Tensor::ones(vec![size, size])?;
-        
-        // CPU matrix multiplication
-        let start = Instant::now();
-        let cpu_result = a.matmul(&b)?;
-        let cpu_time = start.elapsed();
-        
-        // CUDA matrix multiplication (if available)
-        #[cfg(feature = "cuda")]
-        {
-            let cuda_a = a.to_backend(BackendType::Cuda)?;
-            let cuda_b = b.to_backend(BackendType::Cuda)?;
-            
-            let start = Instant::now();
-            let cuda_result = cuda_a.matmul(&cuda_b)?;
-            let _sync = cuda_result.to_vec()?;
-            let cuda_time = start.elapsed();
-            
-            let speedup = cpu_time.as_nanos() as f64 / cuda_time.as_nanos() as f64;
-            println!("Matrix {}x{}: CPU {:?}, CUDA {:?}, Speedup: {:.1}x", 
-                    size, size, cpu_time, cuda_time, speedup);
-        }
-    }
-    
-    Ok(())
-}
-```
 
 ### Reduction Operations
 
@@ -220,8 +183,8 @@ fn optimal_backend_for_workload(tensor_size: usize, operation: &str) -> BackendT
         // Small tensors: CPU always optimal
         (0..=10_000, _) => BackendType::Cpu,
         
-        // Matrix multiplication: Prefer CUDA
-        (_, "matmul") if tensor_size > 1_000_000 => {
+        // Large reductions: Prefer CUDA
+        (_, "reduction") if tensor_size > 1_000_000 => {
             #[cfg(feature = "cuda")]
             { BackendType::Cuda }
             #[cfg(not(feature = "cuda"))]

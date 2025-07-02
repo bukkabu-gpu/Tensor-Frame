@@ -196,7 +196,6 @@ match Tensor::zeros(vec![100000, 100000]) {
 | Operation | CPU | WGPU | CUDA |
 |-----------|-----|------|------|
 | Basic arithmetic (+, -, *, /) | ✅ | ✅ | ✅ |
-| Matrix multiplication | ✅ | ❌ | ✅ |
 | Reductions (sum, mean) | ✅ | ❌ | ✅ |
 | Reshape, transpose | ✅ | ✅ | ✅ |
 | Broadcasting | ✅ | ✅ | ✅ |

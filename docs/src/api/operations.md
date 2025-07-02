@@ -6,7 +6,7 @@ This page provides detailed specifications for all tensor operations in Tensor F
 
 ### Element-wise Binary Operations
 
-All element-wise operations support automatic broadcasting.
+Note: Currently, only addition supports automatic broadcasting. Other operations require tensors to have matching shapes.
 
 #### Addition (`+`)
 
@@ -34,9 +34,9 @@ fn sub(lhs: &Tensor, rhs: &Tensor) -> Result<Tensor>
 
 Computes element-wise subtraction: `output[i] = lhs[i] - rhs[i]`
 
-**Broadcasting**: Yes  
-**Supported shapes**: Any compatible shapes  
-**Error conditions**: Shape incompatibility
+**Broadcasting**: No (requires matching shapes)  
+**Supported shapes**: Must have identical shapes  
+**Error conditions**: Shape mismatch
 
 #### Multiplication (`*`)
 
@@ -46,11 +46,11 @@ fn mul(lhs: &Tensor, rhs: &Tensor) -> Result<Tensor>
 
 Computes element-wise multiplication: `output[i] = lhs[i] * rhs[i]`
 
-**Note**: This is NOT matrix multiplication. Use `matmul()` for matrix operations.
+**Note**: This is element-wise multiplication, not matrix multiplication.
 
-**Broadcasting**: Yes  
-**Supported shapes**: Any compatible shapes  
-**Error conditions**: Shape incompatibility
+**Broadcasting**: No (requires matching shapes)  
+**Supported shapes**: Must have identical shapes  
+**Error conditions**: Shape mismatch
 
 #### Division (`/`)
 
@@ -60,35 +60,10 @@ fn div(lhs: &Tensor, rhs: &Tensor) -> Result<Tensor>
 
 Computes element-wise division: `output[i] = lhs[i] / rhs[i]`
 
-**Broadcasting**: Yes  
-**Supported shapes**: Any compatible shapes  
-**Error conditions**: Shape incompatibility, division by zero
+**Broadcasting**: No (requires matching shapes)  
+**Supported shapes**: Must have identical shapes  
+**Error conditions**: Shape mismatch, division by zero
 
-## Matrix Operations
-
-### Matrix Multiplication
-
-```rust
-fn matmul(&self, other: &Tensor) -> Result<Tensor>
-```
-
-Performs matrix multiplication between 2D tensors.
-
-**Supported shapes**: 
-- `[m, k] × [k, n] -> [m, n]`
-- Both tensors must be 2D
-
-**Error conditions**: 
-- Non-2D tensors
-- Incompatible inner dimensions
-- Backend not supporting matmul
-
-```rust
-let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
-let b = Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2])?;
-let c = a.matmul(&b)?;
-// Result: [[19.0, 22.0], [43.0, 50.0]]
-```
 
 ## Reduction Operations
 
@@ -105,7 +80,7 @@ Computes sum along specified axis or all elements.
 - `axis: Some(i)` - Sum along axis `i`, reduce that dimension
 
 **Supported shapes**: Any  
-**Error conditions**: Invalid axis index
+**Error conditions**: Axis-specific reductions not yet implemented in CPU backend
 
 ```rust
 let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
@@ -113,11 +88,10 @@ let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
 // Sum all elements
 let total = tensor.sum(None)?;          // Result: [10.0] (scalar)
 
-// Sum along axis 0 (rows)
-let col_sums = tensor.sum(Some(0))?;    // Result: [4.0, 6.0]
-
-// Sum along axis 1 (columns)  
-let row_sums = tensor.sum(Some(1))?;    // Result: [3.0, 7.0]
+// Axis-specific sums not yet implemented
+// These will be available in future versions:
+// let col_sums = tensor.sum(Some(0))?;    // Future: [4.0, 6.0]
+// let row_sums = tensor.sum(Some(1))?;    // Future: [3.0, 7.0]
 ```
 
 ### Mean
@@ -133,7 +107,7 @@ Computes arithmetic mean along specified axis or all elements.
 - `axis: Some(i)` - Mean along axis `i`, reduce that dimension
 
 **Supported shapes**: Any  
-**Error conditions**: Invalid axis index
+**Error conditions**: Axis-specific reductions not yet implemented in CPU backend
 
 ```rust
 let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
@@ -141,8 +115,9 @@ let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
 // Mean of all elements
 let average = tensor.mean(None)?;       // Result: [2.5] (scalar)
 
-// Mean along axis 0
-let col_means = tensor.mean(Some(0))?;  // Result: [2.0, 3.0]
+// Axis-specific means not yet implemented
+// This will be available in future versions:
+// let col_means = tensor.mean(Some(0))?;  // Future: [2.0, 3.0]
 ```
 
 ## Shape Manipulation
@@ -277,7 +252,7 @@ Tensor B: [2, 4]  # Error: 3 and 2 cannot be broadcast
 ### Backend-Specific Optimizations
 - **CPU**: Uses Rayon for parallel element-wise operations
 - **WGPU**: Utilizes compute shaders for parallel GPU execution
-- **CUDA**: Leverages cuBLAS for matrix operations and custom kernels for element-wise ops
+- **CUDA**: Uses custom kernels for all operations
 
 ### Broadcasting Performance
 - Zero-copy broadcasting when one tensor has size-1 dimensions

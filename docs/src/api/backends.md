@@ -22,8 +22,6 @@ pub trait Backend: Debug + Send + Sync {
     fn mul(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     fn div(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     
-    // Matrix operations
-    fn matmul(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;
     
     // Reduction operations
     fn sum(&self, storage: &Storage, axis: Option<usize>) -> Result<Storage>;

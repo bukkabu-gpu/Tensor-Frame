@@ -1,12 +1,10 @@
 pub mod broadcast;
-pub mod dtype;
 pub mod ops;
 pub mod shape;
 
 use crate::backend::{Storage, BACKENDS};
 use crate::error::{Result, TensorError};
 use broadcast::broadcast_data;
-use dtype::DType;
 use ops::TensorOps;
 use shape::Shape;
 use std::fmt;
@@ -16,20 +14,17 @@ use std::ops::{Add, Div, Mul, Sub};
 pub struct Tensor {
     storage: Storage,
     shape: Shape,
-    dtype: DType,
 }
 
 impl Tensor {
     pub fn zeros(shape: impl Into<Shape>) -> Result<Self> {
         let shape = shape.into();
-        let dtype = DType::F32;
         for backend in &BACKENDS[0..] {
-            match backend.zeros(&shape, dtype) {
+            match backend.zeros(&shape) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,
                         shape,
-                        dtype,
                     })
                 }
                 Err(_) => continue,
@@ -42,14 +37,12 @@ impl Tensor {
 
     pub fn ones(shape: impl Into<Shape>) -> Result<Self> {
         let shape = shape.into();
-        let dtype = DType::F32;
         for backend in &BACKENDS[0..] {
-            match backend.ones(&shape, dtype) {
+            match backend.ones(&shape) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,
                         shape,
-                        dtype,
                     })
                 }
                 Err(_) => continue,
@@ -74,7 +67,6 @@ impl Tensor {
                     return Ok(Tensor {
                         storage,
                         shape,
-                        dtype: DType::F32,
                     })
                 }
                 Err(_) => continue,
@@ -89,9 +81,6 @@ impl Tensor {
         &self.shape
     }
 
-    pub fn dtype(&self) -> DType {
-        self.dtype
-    }
 
     pub fn ndim(&self) -> usize {
         self.shape.ndim()
@@ -147,8 +136,7 @@ impl Add for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                            dtype: self.dtype,
-                        })
+                                    })
                     }
                     Err(_) => continue,
                 }
@@ -179,8 +167,7 @@ impl Add for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                                dtype: self.dtype,
-                            })
+                                            })
                         }
                         Err(_) => continue,
                     }
@@ -211,8 +198,7 @@ impl Sub for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                        dtype: self.dtype,
-                    })
+                            })
                 }
                 Err(_) => continue,
             }
@@ -240,8 +226,7 @@ impl Mul for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                        dtype: self.dtype,
-                    })
+                            })
                 }
                 Err(_) => continue,
             }
@@ -269,8 +254,7 @@ impl Div for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                        dtype: self.dtype,
-                    })
+                            })
                 }
                 Err(_) => continue,
             }
@@ -295,8 +279,7 @@ impl TensorOps for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape,
-                        dtype: self.dtype,
-                    });
+                            });
                 }
                 Err(_) => continue,
             }
@@ -318,8 +301,7 @@ impl TensorOps for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape,
-                        dtype: self.dtype,
-                    });
+                            });
                 }
                 Err(_) => continue,
             }
@@ -340,7 +322,6 @@ impl TensorOps for Tensor {
         Ok(Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
-            dtype: self.dtype,
         })
     }
 
@@ -358,8 +339,7 @@ impl TensorOps for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: new_shape,
-                        dtype: self.dtype,
-                    });
+                            });
                 }
                 Err(_) => continue,
             }
@@ -391,7 +371,6 @@ impl TensorOps for Tensor {
         Ok(Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
-            dtype: self.dtype,
         })
     }
 
@@ -409,7 +388,6 @@ impl TensorOps for Tensor {
         Ok(Tensor {
             storage: self.storage.clone(),
             shape: new_shape,
-            dtype: self.dtype,
         })
     }
 }
@@ -464,6 +442,6 @@ impl fmt::Display for Tensor {
             write!(f, "]")?;
         }
 
-        write!(f, ", dtype={})", self.dtype)
+        write!(f, ", dtype=f32)")
     }
 }

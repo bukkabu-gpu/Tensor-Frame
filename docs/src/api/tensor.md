@@ -48,24 +48,11 @@ pub fn numel(&self) -> usize
 pub fn ndim(&self) -> usize
 ```
 
-### Backend Information
-
-```rust
-// Get current backend type
-pub fn backend_type(&self) -> BackendType
-
-// Convert tensor to different backend
-pub fn to_backend(&self, backend_type: BackendType) -> Result<Tensor>
-```
-
 ### Data Access
 
 ```rust
 // Convert tensor to Vec<f32>
 pub fn to_vec(&self) -> Result<Vec<f32>>
-
-// Get data type
-pub fn dtype(&self) -> DType
 ```
 
 ## Arithmetic Operations
@@ -91,7 +78,7 @@ let c = a / b;
 
 ### Broadcasting Rules
 
-Operations automatically broadcast tensors following NumPy/PyTorch rules:
+Addition operations automatically broadcast tensors following NumPy/PyTorch rules. Note: Broadcasting is currently only implemented for addition; other operations require matching shapes.
 
 1. Dimensions are aligned from the right
 2. Missing dimensions are treated as size 1
@@ -171,25 +158,8 @@ let average = tensor.mean(None)?;           // Result: 2.5
 
 ### Axis-specific Reductions
 
-```rust
-// Sum along specific axis
-let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
-let row_sums = tensor.sum(Some(1))?;        // Sum along columns: [3.0, 7.0]
-let col_sums = tensor.sum(Some(0))?;        // Sum along rows: [4.0, 6.0]
-```
+Note: Axis-specific reductions are not yet implemented in the CPU backend. Currently, only full tensor reductions (with `axis=None`) are supported.
 
-## Matrix Operations
-
-```rust
-// Matrix multiplication (2D tensors only)
-fn matmul(&self, other: &Tensor) -> Result<Tensor>;
-```
-
-```rust
-let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
-let b = Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2])?;
-let result = a.matmul(&b)?;
-```
 
 ## Display and Debug
 
@@ -200,7 +170,7 @@ let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
 println!("{}", tensor);
 // Output:
 // Tensor([[1.0000, 2.0000],
-//        [3.0000, 4.0000]], dtype=f32, backend=Cpu)
+//        [3.0000, 4.0000]], dtype=f32)
 ```
 
 ## Type Conversions

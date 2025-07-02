@@ -1,11 +1,11 @@
 [package]
-name = "tensor-frame"
+name = "tensor_frame"
 version = "0.0.1-alpha"
 edition = "2021"
-authors = ["Your Name <your.email@example.com>"]
+authors = ["FizzWizzleDazzle"]
 description = "A PyTorch-like tensor library for Rust with CPU, WGPU, and CUDA backends"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/yourusername/tensor-frame"
+repository = "https://github.com/TrainPioneers/Tensor-Frame"
 keywords = ["tensor", "machine-learning", "gpu", "cuda", "wgpu"]
 categories = ["science", "mathematics"]
 readme = "README.md"

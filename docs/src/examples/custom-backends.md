@@ -568,7 +568,7 @@ impl TensorApplication {
 - **I/O operations**: Use CPU backend
 - **Element-wise operations**: Use GPU backends for large tensors
 - **Reductions**: GPU effective for very large tensors
-- **Matrix multiplication**: CUDA > CPU > WGPU (until WGPU matmul implemented)
+- **Large reductions**: CUDA > CPU > WGPU (until WGPU reductions implemented)
 
 ### 3. Memory Management
 - Convert to target backend early in pipeline

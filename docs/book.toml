@@ -17,8 +17,7 @@ create-missing = true
 [output.html]
 default-theme = "navy"
 preferred-dark-theme = "navy"
-git-repository-url = "https://github.com/yourusername/tensor-frame"
-edit-url-template = "https://github.com/yourusername/tensor-frame/edit/main/docs/src/{path}"
+git-repository-url = "https://github.com/TrainPioneers/Tensor-Frame"
 
 [output.html.print]
 enable = true
@@ -35,4 +34,9 @@ expand = true
 heading-split-level = 3
 
 [output.html.playground]
-runnable = true
+# runnable = true # Maybe later i'll add support
+editable = true
+copyable = true
+
+[dependencies]
+tensor_frame = "0.0.1-alpha"

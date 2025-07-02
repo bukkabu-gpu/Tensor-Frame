@@ -87,12 +87,12 @@ use std::time::Instant;
 
 // CPU benchmark
 let start = Instant::now();
-let cpu_result = cpu_tensor.matmul(&cpu_other)?;
+let cpu_result = &cpu_tensor + &cpu_other;
 let cpu_time = start.elapsed();
 
 // GPU benchmark  
 let start = Instant::now();
-let gpu_result = gpu_tensor.matmul(&gpu_other)?;
+let gpu_result = &gpu_tensor + &gpu_other;
 let _sync = gpu_result.to_vec()?;  // Force synchronization
 let gpu_time = start.elapsed();
 

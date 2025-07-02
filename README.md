@@ -1,7 +1,7 @@
 # Tensor Frame
 
-[![Crates.io](https://img.shields.io/crates/v/tensor-frame)](https://crates.io/crates/tensor-frame)
-[![Documentation](https://docs.rs/tensor-frame/badge.svg)](https://docs.rs/tensor-frame)
+[![Crates.io](https://img.shields.io/crates/v/tensor_frame)](https://crates.io/crates/tensor_frame)
+[![Documentation](https://docs.rs/tensor_frame/badge.svg)](https://docs.rs/tensor_frame)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
 
 A high-performance, PyTorch-like tensor library for Rust with support for multiple computational backends.
@@ -21,10 +21,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tensor-frame = "0.1"
+tensor_frame = "0.0.1-alpha"
 
 # For GPU support
-tensor-frame = { version = "0.1", features = ["wgpu"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["wgpu"] }
 ```
 
 Basic usage:
@@ -62,12 +62,12 @@ println!("Result: {:?}", sum.to_vec()?);
 
 ## Documentation
 
-- 📖 [**Complete Guide**](https://yourusername.github.io/tensor-frame/) - Comprehensive documentation with tutorials
-- 🚀 [**Getting Started**](https://yourusername.github.io/tensor-frame/getting-started.html) - Quick start guide  
-- 📚 [**API Reference**](https://docs.rs/tensor-frame) - Detailed API documentation
-- 💡 [**Examples**](https://yourusername.github.io/tensor-frame/examples/) - Practical examples and tutorials
-- ⚡ [**Performance Guide**](https://yourusername.github.io/tensor-frame/performance.html) - Optimization tips and benchmarks
-- 🔧 [**Backend Guides**](https://yourusername.github.io/tensor-frame/backends/) - CPU, WGPU, and CUDA backend details
+- 📖 [**Complete Guide**](https://trainpioneers.github.io/Tensor-Frame/) - Comprehensive documentation with tutorials
+- 🚀 [**Getting Started**](https://trainpioneers.github.io/Tensor-Frame/getting-started.html) - Quick start guide  
+- 📚 [**API Reference**](https://docs.rs/tensor_frame) - Detailed API documentation
+- 💡 [**Examples**](https://trainpioneers.github.io/Tensor-Frame/examples/) - Practical examples and tutorials
+- ⚡ [**Performance Guide**](https://trainpioneers.github.io/Tensor-Frame/performance.html) - Optimization tips and benchmarks
+- 🔧 [**Backend Guides**](https://trainpioneers.github.io/Tensor-Frame/backends/) - CPU, WGPU, and CUDA backend details
 
 ## Examples
 
@@ -75,7 +75,7 @@ See the [examples](examples/) directory for more detailed usage:
 
 - [Basic Operations](examples/basic_operations.rs)
 - [Broadcasting](examples/broadcasting.rs)
-- [Backend Selection](examples/backends.rs)
+- [Backend Selection](examples/backend_selection.rs)
 
 ## Contributing
 

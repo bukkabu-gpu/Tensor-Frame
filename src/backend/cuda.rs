@@ -1,6 +1,6 @@
 use super::{Backend, CudaStorage, Storage};
 use crate::error::{Result, TensorError};
-use crate::tensor::{dtype::DType, shape::Shape};
+use crate::tensor::shape::Shape;
 #[cfg(feature = "cuda")]
 use cudarc::driver::{CudaContext, CudaFunction, LaunchConfig, PushKernelArg};
 #[cfg(feature = "cuda")]
@@ -37,37 +37,34 @@ impl CudaBackend {
     ) -> Result<HashMap<String, CudaFunction>> {
         let mut kernels = HashMap::new();
 
-        // Read the CUDA kernel source from the .cu file
-        let kernel_source = include_str!("../kernels.cu");
-
-        // Compile kernels using nvrtc
-        let ptx = cudarc::nvrtc::compile_ptx(kernel_source).map_err(|e| {
-            TensorError::BackendError(format!("Failed to compile CUDA kernels: {}", e))
-        })?;
-
-        // Load the module using the correct API
-        let module = context
-            .load_module(ptx)
-            .map_err(|e| TensorError::BackendError(format!("Failed to load PTX module: {}", e)))?;
-
-        let kernel_names = [
-            "fill_ones_kernel",
-            "add_kernel",
-            "sub_kernel",
-            "mul_kernel",
-            "div_kernel",
-            "sum_kernel",
-            "transpose_2d_kernel",
+        // Define kernel files and their respective kernels
+        let kernel_files = [
+            ("fill", include_str!("../kernels/fill.cu"), vec!["fill_ones_kernel"]),
+            ("arithmetic", include_str!("../kernels/arithmetic.cu"), vec!["add_kernel", "sub_kernel", "mul_kernel", "div_kernel"]),
+            ("reduction", include_str!("../kernels/reduction.cu"), vec!["sum_kernel", "mean_kernel"]),
+            ("transform", include_str!("../kernels/transform.cu"), vec!["transpose_2d_kernel"]),
         ];
 
-        for &name in &kernel_names {
-            let func = module.load_function(name).map_err(|e| {
-                TensorError::BackendError(format!("Failed to get kernel {}: {}", name, e))
+        for (module_name, kernel_source, kernel_names) in &kernel_files {
+            // Compile kernels using nvrtc
+            let ptx = cudarc::nvrtc::compile_ptx(kernel_source).map_err(|e| {
+                TensorError::BackendError(format!("Failed to compile CUDA kernels in {}: {}", module_name, e))
             })?;
-            kernels.insert(name.to_string(), func);
+
+            // Load the module using the correct API
+            let module = context
+                .load_module(ptx)
+                .map_err(|e| TensorError::BackendError(format!("Failed to load PTX module {}: {}", module_name, e)))?;
+
+            for &name in kernel_names {
+                let func = module.load_function(name).map_err(|e| {
+                    TensorError::BackendError(format!("Failed to get kernel {} from {}: {}", name, module_name, e))
+                })?;
+                kernels.insert(name.to_string(), func);
+            }
         }
 
-        println!("Successfully loaded {} CUDA kernels", kernels.len());
+        println!("Successfully loaded {} CUDA kernels from {} modules", kernels.len(), kernel_files.len());
         Ok(kernels)
     }
 
@@ -130,7 +127,7 @@ impl Backend for CudaBackend {
         is_available()
     }
 
-    fn zeros(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn zeros(&self, shape: &Shape) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             let size = shape.numel();
@@ -148,7 +145,7 @@ impl Backend for CudaBackend {
         ))
     }
 
-    fn ones(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn ones(&self, shape: &Shape) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             let size = shape.numel();
@@ -231,9 +228,6 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("add_kernel", a, b)
                 }
-                _ => Err(TensorError::BackendError(
-                    "Failed to create CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -266,9 +260,6 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("sub_kernel", a, b)
                 }
-                _ => Err(TensorError::BackendError(
-                    "Failed to create CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -301,9 +292,6 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("mul_kernel", a, b)
                 }
-                _ => Err(TensorError::BackendError(
-                    "Failed to create CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -336,9 +324,6 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("div_kernel", a, b)
                 }
-                _ => Err(TensorError::BackendError(
-                    "Failed to create CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -356,8 +341,8 @@ impl Backend for CudaBackend {
                 ));
             }
 
-            match storage {
-                Storage::Cuda(cuda_storage) => {
+            let Storage::Cuda(cuda_storage) = storage;
+            {
                     let stream = self.context.default_stream();
                     let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
                         TensorError::BackendError(format!(
@@ -393,10 +378,6 @@ impl Backend for CudaBackend {
                     Ok(Storage::Cuda(CudaStorage {
                         buffer: std::sync::Arc::new(result_buf),
                     }))
-                }
-                _ => Err(TensorError::BackendError(
-                    "CUDA backend can only operate on CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -414,31 +395,22 @@ impl Backend for CudaBackend {
                 ));
             }
 
-            match storage {
-                Storage::Cuda(cuda_storage) => {
-                    let sum_result = self.sum(storage, axis)?;
+            let Storage::Cuda(cuda_storage) = storage;
+            {
+                let sum_result = self.sum(storage, axis)?;
 
-                    if let Storage::Cuda(sum_storage) = sum_result {
-                        let sum_data = self.to_vec_f32(&Storage::Cuda(sum_storage))?;
-                        let mean_val = sum_data[0] / cuda_storage.buffer.len() as f32;
+                let Storage::Cuda(sum_storage) = sum_result;
+                let sum_data = self.to_vec_f32(&Storage::Cuda(sum_storage))?;
+                let mean_val = sum_data[0] / cuda_storage.buffer.len() as f32;
 
-                        let stream = self.context.default_stream();
-                        let result_buf = stream.memcpy_stod(&[mean_val]).map_err(|e| {
-                            TensorError::BackendError(format!("Failed to copy mean to CUDA: {}", e))
-                        })?;
+                let stream = self.context.default_stream();
+                let result_buf = stream.memcpy_stod(&[mean_val]).map_err(|e| {
+                    TensorError::BackendError(format!("Failed to copy mean to CUDA: {}", e))
+                })?;
 
-                        Ok(Storage::Cuda(CudaStorage {
-                            buffer: std::sync::Arc::new(result_buf),
-                        }))
-                    } else {
-                        Err(TensorError::BackendError(
-                            "Sum operation returned non-CUDA storage".to_string(),
-                        ))
-                    }
-                }
-                _ => Err(TensorError::BackendError(
-                    "CUDA backend can only operate on CUDA storage".to_string(),
-                )),
+                Ok(Storage::Cuda(CudaStorage {
+                    buffer: std::sync::Arc::new(result_buf),
+                }))
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -450,8 +422,8 @@ impl Backend for CudaBackend {
     fn transpose(&self, storage: &Storage, shape: &Shape) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
-            match storage {
-                Storage::Cuda(cuda_storage) => {
+            let Storage::Cuda(cuda_storage) = storage;
+            {
                     let dims = shape.dims();
                     if dims.len() != 2 {
                         return Err(TensorError::BackendError(
@@ -504,10 +476,6 @@ impl Backend for CudaBackend {
                     Ok(Storage::Cuda(CudaStorage {
                         buffer: std::sync::Arc::new(result_buf),
                     }))
-                }
-                _ => Err(TensorError::BackendError(
-                    "CUDA backend can only operate on CUDA storage".to_string(),
-                )),
             }
         }
         #[cfg(not(feature = "cuda"))]

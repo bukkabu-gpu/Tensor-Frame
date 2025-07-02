@@ -1,5 +1,5 @@
 use crate::error::Result;
-use crate::tensor::{dtype::DType, shape::Shape};
+use crate::tensor::shape::Shape;
 use once_cell::sync::Lazy;
 use std::fmt::Debug;
 use std::sync::Arc;
@@ -16,8 +16,8 @@ pub trait Backend: Debug + Send + Sync {
         true
     }
 
-    fn zeros(&self, shape: &Shape, dtype: DType) -> Result<Storage>;
-    fn ones(&self, shape: &Shape, dtype: DType) -> Result<Storage>;
+    fn zeros(&self, shape: &Shape) -> Result<Storage>;
+    fn ones(&self, shape: &Shape) -> Result<Storage>;
     fn from_slice(&self, data: &[f32], shape: &Shape) -> Result<Storage>;
 
     fn add(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage>;

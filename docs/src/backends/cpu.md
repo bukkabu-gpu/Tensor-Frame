@@ -16,14 +16,14 @@ The CPU backend is enabled by default:
 
 ```toml
 [dependencies]
-tensor-frame = "0.1"  # CPU backend included
+tensor_frame = "0.0.1-alpha"  # CPU backend included
 ```
 
 Or explicitly:
 
 ```toml
 [dependencies]
-tensor-frame = { version = "0.1", features = ["cpu"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["cpu"] }
 ```
 
 ## Implementation Details
@@ -88,8 +88,8 @@ let test_tensor = Tensor::from_vec(test_data, shape)?;
 
 #### Suboptimal Use Cases
 ```rust
-// Very large matrix multiplications
-let huge_mm = a.matmul(&b)?;  // Consider GPU for > 1000x1000
+// Very large tensor operations
+let huge_op = a + b;  // Consider GPU for very large tensors
 
 // Repeated large element-wise operations
 for _ in 0..1000 {
@@ -274,7 +274,7 @@ For maximum performance, consider linking with optimized BLAS:
 
 ```toml
 [dependencies]
-tensor-frame = "0.1"
+tensor_frame = "0.0.1-alpha"
 blas-src = { version = "0.8", features = ["openblas"] }
 ```
 

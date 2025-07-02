@@ -6,7 +6,7 @@ Add Tensor Frame to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tensor-frame = "0.1"
+tensor_frame = "0.0.1-alpha"
 ```
 
 ### Feature Flags
@@ -16,16 +16,16 @@ Tensor Frame supports optional backends via feature flags:
 ```toml
 [dependencies]
 # CPU only (default)
-tensor-frame = "0.1"
+tensor_frame = "0.0.1-alpha"
 
 # With WGPU support
-tensor-frame = { version = "0.1", features = ["wgpu"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["wgpu"] }
 
 # With CUDA support  
-tensor-frame = { version = "0.1", features = ["cuda"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["cuda"] }
 
 # All backends
-tensor-frame = { version = "0.1", features = ["wgpu", "cuda"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["wgpu", "cuda"] }
 ```
 
 ## Basic Usage
@@ -47,7 +47,7 @@ fn main() -> Result<()> {
     // Inspect tensor properties
     println!("Shape: {:?}", zeros.shape().dims());
     println!("Number of elements: {}", zeros.numel());
-    println!("Backend: {:?}", zeros.backend_type());
+    println!("Number of dimensions: {}", zeros.ndim());
     
     Ok(())
 }

@@ -1,6 +1,6 @@
 use super::{Backend, Storage};
 use crate::error::{Result, TensorError};
-use crate::tensor::{dtype::DType, shape::Shape};
+use crate::tensor::shape::Shape;
 use std::sync::Arc;
 
 #[cfg(feature = "wgpu")]
@@ -338,7 +338,7 @@ impl Backend for WgpuBackend {
         true
     }
 
-    fn zeros(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn zeros(&self, shape: &Shape) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
             let size = shape.numel();
@@ -358,7 +358,7 @@ impl Backend for WgpuBackend {
         ))
     }
 
-    fn ones(&self, shape: &Shape, _dtype: DType) -> Result<Storage> {
+    fn ones(&self, shape: &Shape) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
             let size = shape.numel();

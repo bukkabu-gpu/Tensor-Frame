@@ -4,7 +4,7 @@ pub mod tensor;
 
 pub use backend::Backend;
 pub use error::{Result, TensorError};
-pub use tensor::{dtype::DType, ops::TensorOps, shape::Shape, Tensor};
+pub use tensor::{ops::TensorOps, shape::Shape, Tensor};
 
 #[cfg(test)]
 mod tests {

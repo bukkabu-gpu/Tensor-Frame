@@ -118,7 +118,7 @@ Key settings:
 The documentation is automatically deployed to GitHub Pages via GitHub Actions:
 - **Trigger**: Push to `main` branch with changes to `docs/` directory
 - **Workflow**: `.github/workflows/docs.yml`
-- **URL**: `https://yourusername.github.io/tensor-frame/`
+- **URL**: `https://trainpioneers.github.io/Tensor-Frame/`
 
 ## 📋 Maintenance Tasks
 

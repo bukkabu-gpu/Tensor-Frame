@@ -16,7 +16,7 @@ Enable the WGPU backend with the feature flag:
 
 ```toml
 [dependencies]
-tensor-frame = { version = "0.1", features = ["wgpu"] }
+tensor_frame = { version = "0.0.1-alpha", features = ["wgpu"] }
 ```
 
 **Additional Dependencies**:
@@ -310,7 +310,7 @@ let tensor = Tensor::zeros(vec![aligned_size, aligned_size])?;
 The WGPU backend is actively developed with planned improvements:
 
 - **Reduction Operations**: Sum, mean, and other reductions on GPU
-- **Matrix Multiplication**: GPU-optimized matrix operations
+- **Advanced Operations**: GPU-optimized tensor operations
 - **Mixed Precision**: f16 and bf16 data type support  
 - **Async Operations**: Fully asynchronous GPU command queues
 - **WebGPU Stability**: Production-ready web deployment
