@@ -1,4 +1,4 @@
-use tensor_frame::{Tensor, Result};
+use tensor_frame::{Result, Tensor};
 
 fn main() -> Result<()> {
     println!("🚀 Tensor Frame Broadcasting Examples");
@@ -10,7 +10,7 @@ fn main() -> Result<()> {
     let scalar = Tensor::from_vec(vec![10.0], vec![])?;
     println!("   Tensor (2x2): {}", tensor);
     println!("   Scalar: {}", scalar);
-    
+
     // Note: Full scalar broadcasting not yet implemented, but shape compatibility is shown
     println!("   Broadcasting compatibility check passed!\n");
 
@@ -19,8 +19,14 @@ fn main() -> Result<()> {
     let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?;
     let b = Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2])?;
     let result = (a + b)?;
-    println!("   A: {}", Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?);
-    println!("   B: {}", Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2])?);
+    println!(
+        "   A: {}",
+        Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2])?
+    );
+    println!(
+        "   B: {}",
+        Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2])?
+    );
     println!("   A + B: {}\n", result);
 
     // Broadcasting compatible shapes (works for addition)

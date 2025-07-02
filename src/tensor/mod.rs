@@ -21,12 +21,7 @@ impl Tensor {
         let shape = shape.into();
         for backend in &BACKENDS[0..] {
             match backend.zeros(&shape) {
-                Ok(storage) => {
-                    return Ok(Tensor {
-                        storage,
-                        shape,
-                    })
-                }
+                Ok(storage) => return Ok(Tensor { storage, shape }),
                 Err(_) => continue,
             }
         }
@@ -39,12 +34,7 @@ impl Tensor {
         let shape = shape.into();
         for backend in &BACKENDS[0..] {
             match backend.ones(&shape) {
-                Ok(storage) => {
-                    return Ok(Tensor {
-                        storage,
-                        shape,
-                    })
-                }
+                Ok(storage) => return Ok(Tensor { storage, shape }),
                 Err(_) => continue,
             }
         }
@@ -63,12 +53,7 @@ impl Tensor {
         }
         for backend in &BACKENDS[0..] {
             match backend.from_slice(&data, &shape) {
-                Ok(storage) => {
-                    return Ok(Tensor {
-                        storage,
-                        shape,
-                    })
-                }
+                Ok(storage) => return Ok(Tensor { storage, shape }),
                 Err(_) => continue,
             }
         }
@@ -80,7 +65,6 @@ impl Tensor {
     pub fn shape(&self) -> &Shape {
         &self.shape
     }
-
 
     pub fn ndim(&self) -> usize {
         self.shape.ndim()
@@ -136,7 +120,7 @@ impl Add for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                                    })
+                        })
                     }
                     Err(_) => continue,
                 }
@@ -167,7 +151,7 @@ impl Add for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                                            })
+                            })
                         }
                         Err(_) => continue,
                     }
@@ -198,7 +182,7 @@ impl Sub for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                            })
+                    })
                 }
                 Err(_) => continue,
             }
@@ -226,7 +210,7 @@ impl Mul for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                            })
+                    })
                 }
                 Err(_) => continue,
             }
@@ -254,7 +238,7 @@ impl Div for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: self.shape,
-                            })
+                    })
                 }
                 Err(_) => continue,
             }
@@ -276,10 +260,7 @@ impl TensorOps for Tensor {
                     } else {
                         self.shape.clone()
                     };
-                    return Ok(Tensor {
-                        storage,
-                        shape,
-                            });
+                    return Ok(Tensor { storage, shape });
                 }
                 Err(_) => continue,
             }
@@ -298,10 +279,7 @@ impl TensorOps for Tensor {
                     } else {
                         self.shape.clone()
                     };
-                    return Ok(Tensor {
-                        storage,
-                        shape,
-                            });
+                    return Ok(Tensor { storage, shape });
                 }
                 Err(_) => continue,
             }
@@ -339,7 +317,7 @@ impl TensorOps for Tensor {
                     return Ok(Tensor {
                         storage,
                         shape: new_shape,
-                            });
+                    });
                 }
                 Err(_) => continue,
             }

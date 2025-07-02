@@ -39,32 +39,61 @@ impl CudaBackend {
 
         // Define kernel files and their respective kernels
         let kernel_files = [
-            ("fill", include_str!("../kernels/fill.cu"), vec!["fill_ones_kernel"]),
-            ("arithmetic", include_str!("../kernels/arithmetic.cu"), vec!["add_kernel", "sub_kernel", "mul_kernel", "div_kernel"]),
-            ("reduction", include_str!("../kernels/reduction.cu"), vec!["sum_kernel", "mean_kernel"]),
-            ("transform", include_str!("../kernels/transform.cu"), vec!["transpose_2d_kernel"]),
+            (
+                "fill",
+                include_str!("../kernels/fill.cu"),
+                vec!["fill_ones_kernel"],
+            ),
+            (
+                "arithmetic",
+                include_str!("../kernels/arithmetic.cu"),
+                vec!["add_kernel", "sub_kernel", "mul_kernel", "div_kernel"],
+            ),
+            (
+                "reduction",
+                include_str!("../kernels/reduction.cu"),
+                vec!["sum_kernel", "mean_kernel"],
+            ),
+            (
+                "transform",
+                include_str!("../kernels/transform.cu"),
+                vec!["transpose_2d_kernel"],
+            ),
         ];
 
         for (module_name, kernel_source, kernel_names) in &kernel_files {
             // Compile kernels using nvrtc
             let ptx = cudarc::nvrtc::compile_ptx(kernel_source).map_err(|e| {
-                TensorError::BackendError(format!("Failed to compile CUDA kernels in {}: {}", module_name, e))
+                TensorError::BackendError(format!(
+                    "Failed to compile CUDA kernels in {}: {}",
+                    module_name, e
+                ))
             })?;
 
             // Load the module using the correct API
-            let module = context
-                .load_module(ptx)
-                .map_err(|e| TensorError::BackendError(format!("Failed to load PTX module {}: {}", module_name, e)))?;
+            let module = context.load_module(ptx).map_err(|e| {
+                TensorError::BackendError(format!(
+                    "Failed to load PTX module {}: {}",
+                    module_name, e
+                ))
+            })?;
 
             for &name in kernel_names {
                 let func = module.load_function(name).map_err(|e| {
-                    TensorError::BackendError(format!("Failed to get kernel {} from {}: {}", name, module_name, e))
+                    TensorError::BackendError(format!(
+                        "Failed to get kernel {} from {}: {}",
+                        name, module_name, e
+                    ))
                 })?;
                 kernels.insert(name.to_string(), func);
             }
         }
 
-        println!("Successfully loaded {} CUDA kernels from {} modules", kernels.len(), kernel_files.len());
+        println!(
+            "Successfully loaded {} CUDA kernels from {} modules",
+            kernels.len(),
+            kernel_files.len()
+        );
         Ok(kernels)
     }
 
@@ -343,41 +372,42 @@ impl Backend for CudaBackend {
 
             let Storage::Cuda(cuda_storage) = storage;
             {
-                    let stream = self.context.default_stream();
-                    let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
-                        TensorError::BackendError(format!(
-                            "Failed to allocate CUDA result buffer: {}",
-                            e
-                        ))
-                    })?;
+                let stream = self.context.default_stream();
+                let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
+                    TensorError::BackendError(format!(
+                        "Failed to allocate CUDA result buffer: {}",
+                        e
+                    ))
+                })?;
 
-                    let kernel = self.kernels.get("sum_kernel").ok_or_else(|| {
-                        TensorError::BackendError("sum_kernel not found".to_string())
-                    })?;
+                let kernel = self
+                    .kernels
+                    .get("sum_kernel")
+                    .ok_or_else(|| TensorError::BackendError("sum_kernel not found".to_string()))?;
 
-                    let size = cuda_storage.buffer.len();
-                    let block_size = 256;
-                    let grid_size = (size + block_size - 1) / block_size;
+                let size = cuda_storage.buffer.len();
+                let block_size = 256;
+                let grid_size = (size + block_size - 1) / block_size;
 
-                    let cfg = LaunchConfig {
-                        grid_dim: (grid_size as u32, 1, 1),
-                        block_dim: (block_size as u32, 1, 1),
-                        shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
-                    };
+                let cfg = LaunchConfig {
+                    grid_dim: (grid_size as u32, 1, 1),
+                    block_dim: (block_size as u32, 1, 1),
+                    shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
+                };
 
-                    let mut builder = stream.launch_builder(kernel);
-                    builder.arg(cuda_storage.buffer.as_ref());
-                    builder.arg(&mut result_buf);
-                    let size_arg = size as i32;
-                    builder.arg(&size_arg);
+                let mut builder = stream.launch_builder(kernel);
+                builder.arg(cuda_storage.buffer.as_ref());
+                builder.arg(&mut result_buf);
+                let size_arg = size as i32;
+                builder.arg(&size_arg);
 
-                    unsafe { builder.launch(cfg) }.map_err(|e| {
-                        TensorError::BackendError(format!("Failed to launch sum kernel: {}", e))
-                    })?;
+                unsafe { builder.launch(cfg) }.map_err(|e| {
+                    TensorError::BackendError(format!("Failed to launch sum kernel: {}", e))
+                })?;
 
-                    Ok(Storage::Cuda(CudaStorage {
-                        buffer: std::sync::Arc::new(result_buf),
-                    }))
+                Ok(Storage::Cuda(CudaStorage {
+                    buffer: std::sync::Arc::new(result_buf),
+                }))
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -424,58 +454,55 @@ impl Backend for CudaBackend {
         {
             let Storage::Cuda(cuda_storage) = storage;
             {
-                    let dims = shape.dims();
-                    if dims.len() != 2 {
-                        return Err(TensorError::BackendError(
-                            "Transpose only supports 2D tensors".to_string(),
-                        ));
-                    }
+                let dims = shape.dims();
+                if dims.len() != 2 {
+                    return Err(TensorError::BackendError(
+                        "Transpose only supports 2D tensors".to_string(),
+                    ));
+                }
 
-                    let rows = dims[0];
-                    let cols = dims[1];
-                    let stream = self.context.default_stream();
-                    let mut result_buf = stream
-                        .alloc_zeros::<f32>(cuda_storage.buffer.len())
-                        .map_err(|e| {
-                            TensorError::BackendError(format!(
-                                "Failed to allocate CUDA result buffer: {}",
-                                e
-                            ))
-                        })?;
-
-                    let kernel = self.kernels.get("transpose_2d_kernel").ok_or_else(|| {
-                        TensorError::BackendError("transpose_2d_kernel not found".to_string())
-                    })?;
-
-                    let block_dim_x = 16;
-                    let block_dim_y = 16;
-                    let grid_dim_x = (cols + block_dim_x - 1) / block_dim_x;
-                    let grid_dim_y = (rows + block_dim_y - 1) / block_dim_y;
-
-                    let cfg = LaunchConfig {
-                        grid_dim: (grid_dim_x as u32, grid_dim_y as u32, 1),
-                        block_dim: (block_dim_x as u32, block_dim_y as u32, 1),
-                        shared_mem_bytes: 0,
-                    };
-
-                    let mut builder = stream.launch_builder(kernel);
-                    builder.arg(cuda_storage.buffer.as_ref());
-                    builder.arg(&mut result_buf);
-                    let rows_arg = rows as i32;
-                    let cols_arg = cols as i32;
-                    builder.arg(&rows_arg);
-                    builder.arg(&cols_arg);
-
-                    unsafe { builder.launch(cfg) }.map_err(|e| {
+                let rows = dims[0];
+                let cols = dims[1];
+                let stream = self.context.default_stream();
+                let mut result_buf = stream
+                    .alloc_zeros::<f32>(cuda_storage.buffer.len())
+                    .map_err(|e| {
                         TensorError::BackendError(format!(
-                            "Failed to launch transpose kernel: {}",
+                            "Failed to allocate CUDA result buffer: {}",
                             e
                         ))
                     })?;
 
-                    Ok(Storage::Cuda(CudaStorage {
-                        buffer: std::sync::Arc::new(result_buf),
-                    }))
+                let kernel = self.kernels.get("transpose_2d_kernel").ok_or_else(|| {
+                    TensorError::BackendError("transpose_2d_kernel not found".to_string())
+                })?;
+
+                let block_dim_x = 16;
+                let block_dim_y = 16;
+                let grid_dim_x = (cols + block_dim_x - 1) / block_dim_x;
+                let grid_dim_y = (rows + block_dim_y - 1) / block_dim_y;
+
+                let cfg = LaunchConfig {
+                    grid_dim: (grid_dim_x as u32, grid_dim_y as u32, 1),
+                    block_dim: (block_dim_x as u32, block_dim_y as u32, 1),
+                    shared_mem_bytes: 0,
+                };
+
+                let mut builder = stream.launch_builder(kernel);
+                builder.arg(cuda_storage.buffer.as_ref());
+                builder.arg(&mut result_buf);
+                let rows_arg = rows as i32;
+                let cols_arg = cols as i32;
+                builder.arg(&rows_arg);
+                builder.arg(&cols_arg);
+
+                unsafe { builder.launch(cfg) }.map_err(|e| {
+                    TensorError::BackendError(format!("Failed to launch transpose kernel: {}", e))
+                })?;
+
+                Ok(Storage::Cuda(CudaStorage {
+                    buffer: std::sync::Arc::new(result_buf),
+                }))
             }
         }
         #[cfg(not(feature = "cuda"))]
