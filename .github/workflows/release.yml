@@ -18,7 +18,11 @@ jobs:
       - name: Get current version
         id: get_version
         run: |
-          VERSION=$(grep '^version =' Cargo.toml | head -n1 | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(grep '^version[[:space:]]*=' Cargo.toml | head -n1 | sed 's/.*"\(.*\)".*/\1/')
+          if [ -z "$VERSION" ]; then
+            echo "Version not found in Cargo.toml!" >&2
+            exit 1
+          fi
           echo "Current version: $VERSION"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
