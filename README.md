@@ -3,6 +3,9 @@
 [![Crates.io](https://img.shields.io/crates/v/tensor_frame)](https://crates.io/crates/tensor_frame)
 [![Documentation](https://docs.rs/tensor_frame/badge.svg)](https://docs.rs/tensor_frame)
 [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg)](LICENSE-MIT)
+![Platform](https://img.shields.io/badge/platform-windows%20%7C%20macos%20%7C%20linux-lightgrey.svg)
+![Build](https://img.shields.io/github/actions/workflow/status/TrainPioneers/Tensor-Frame/ci.yml?branch=main)
+
 
 A high-performance, PyTorch-like tensor library for Rust with support for multiple computational backends.
 
