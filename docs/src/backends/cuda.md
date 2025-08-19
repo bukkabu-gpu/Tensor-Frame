@@ -29,7 +29,7 @@ Enable the CUDA backend:
 
 ```toml
 [dependencies]
-tensor_frame = { version = "0.0.1-alpha", features = ["cuda"] }
+tensor_frame = { version = "0.0.2-alpha", features = ["cuda"] }
 ```
 
 **Build Requirements**:

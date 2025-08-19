@@ -24,10 +24,10 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tensor_frame = "0.0.1-alpha"
+tensor_frame = "0.0.2-alpha"
 
 # For GPU support
-tensor_frame = { version = "0.0.1-alpha", features = ["wgpu"] }
+tensor_frame = { version = "0.0.2-alpha", features = ["wgpu"] }
 ```
 
 Basic usage:

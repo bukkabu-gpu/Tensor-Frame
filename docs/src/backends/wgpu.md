@@ -16,7 +16,7 @@ Enable the WGPU backend with the feature flag:
 
 ```toml
 [dependencies]
-tensor_frame = { version = "0.0.1-alpha", features = ["wgpu"] }
+tensor_frame = { version = "0.0.2-alpha", features = ["wgpu"] }
 ```
 
 **Additional Dependencies**:
