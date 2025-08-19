@@ -1,6 +1,6 @@
 [package]
 name = "tensor_frame"
-version = "0.0.1-alpha"
+version = "0.0.2-alpha"
 edition = "2021"
 authors = ["FizzWizzleDazzle"]
 description = "A PyTorch-like tensor library for Rust with CPU, WGPU, and CUDA backends"
