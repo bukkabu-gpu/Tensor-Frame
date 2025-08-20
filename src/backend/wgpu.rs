@@ -299,6 +299,84 @@ impl WgpuBackend {
             size: lhs.size,
         }))
     }
+
+    fn unary_operation(&self, input: &WgpuStorage, operation: &str) -> Result<Storage> {
+        // Read WGSL shader source from file based on operation
+        let shader_filename = match operation {
+            "tanh" => "tanh.wgsl",
+            _ => {
+                return Err(TensorError::BackendError(format!(
+                    "Unknown unary operation: {}",
+                    operation
+                )));
+            }
+        };
+
+        let mut shader_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        shader_path.push("src");
+        shader_path.push("shaders");
+        shader_path.push(shader_filename);
+
+        let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
+            TensorError::BackendError(format!(
+                "Failed to read shader file {}: {}",
+                shader_path.display(),
+                e
+            ))
+        })?;
+
+        let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
+
+        let result_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Unary Result Buffer"),
+            size: (input.size * std::mem::size_of::<f32>()) as u64,
+            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Unary Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: result_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Unary Compute Encoder"),
+            });
+
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Unary Compute Pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+
+            let workgroup_count = (input.size + 63) / 64; // Round up division
+            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: Arc::new(result_buffer),
+            device: self.device.clone(),
+            queue: self.queue.clone(),
+            size: input.size,
+        }))
+    }
 }
 
 pub fn is_available() -> bool {
@@ -841,13 +919,18 @@ impl Backend for WgpuBackend {
         ))
     }
 
-    fn tanh(&self, _storage: &Storage) -> Result<Storage> {
+    fn tanh(&self, storage: &Storage) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU tanh function
-            Err(TensorError::BackendError(
-                "Tanh function not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let data = self.to_vec_f32(storage)?;
+            let shape = Shape::new(vec![data.len()])?;
+            let wgpu_storage = self.from_slice(&data, &shape)?;
+
+            let Storage::Wgpu(input) = &wgpu_storage else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+            self.unary_operation(input, "tanh")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(

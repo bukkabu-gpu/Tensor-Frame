@@ -553,3 +553,49 @@ mod tests {
         assert_eq!(result_2, vec![3.0, 7.0, 11.0, 15.0]); // [1+2, 3+4, 5+6, 7+8]
     }
 }
+
+// ==== WGPU-SPECIFIC TESTS ====
+#[cfg(test)]
+#[cfg(feature = "wgpu")]
+mod wgpu_tanh_tests {
+    use super::*;
+
+    #[test]
+    fn test_wgpu_tanh_basic() {
+        // Create a simple tensor and apply tanh
+        let tensor = Tensor::from_vec(vec![-2.0, -1.0, 0.0, 1.0, 2.0], vec![5]).unwrap();
+        
+        // Apply tanh operation 
+        let result = tensor.tanh().unwrap();
+        
+        let actual = result.to_vec().unwrap();
+        
+        // Check that tanh values are in expected ranges
+        assert!(actual[0] < -0.9); // tanh(-2) ≈ -0.964
+        assert!(actual[1] < -0.7); // tanh(-1) ≈ -0.762
+        assert!((actual[2] - 0.0).abs() < 1e-6); // tanh(0) = 0
+        assert!(actual[3] > 0.7); // tanh(1) ≈ 0.762
+        assert!(actual[4] > 0.9); // tanh(2) ≈ 0.964
+        
+        // More precise checks with expected values
+        let expected_tanh_2 = 2.0_f32.tanh();
+        let expected_tanh_1 = 1.0_f32.tanh();
+        
+        assert!((actual[0] - (-expected_tanh_2)).abs() < 1e-3, "tanh(-2) expected: {}, got: {}", -expected_tanh_2, actual[0]);
+        assert!((actual[1] - (-expected_tanh_1)).abs() < 1e-3, "tanh(-1) expected: {}, got: {}", -expected_tanh_1, actual[1]);
+        assert!((actual[3] - expected_tanh_1).abs() < 1e-3, "tanh(1) expected: {}, got: {}", expected_tanh_1, actual[3]);
+        assert!((actual[4] - expected_tanh_2).abs() < 1e-3, "tanh(2) expected: {}, got: {}", expected_tanh_2, actual[4]);
+    }
+
+    #[test] 
+    fn test_wgpu_tanh_extreme_values() {
+        // Test extreme values where tanh should saturate
+        let tensor = Tensor::from_vec(vec![-10.0, 0.0, 10.0], vec![3]).unwrap();
+        let result = tensor.tanh().unwrap();
+
+        let actual = result.to_vec().unwrap();
+        assert!(actual[0] < -0.999); // tanh(-10) ≈ -1
+        assert!((actual[1] - 0.0).abs() < 1e-6); // tanh(0) = 0
+        assert!(actual[2] > 0.999); // tanh(10) ≈ 1
+    }
+}
