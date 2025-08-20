@@ -553,3 +553,104 @@ mod tests {
         assert_eq!(result_2, vec![3.0, 7.0, 11.0, 15.0]); // [1+2, 3+4, 5+6, 7+8]
     }
 }
+
+// ==== WGPU-SPECIFIC TESTS ====
+#[cfg(test)]
+#[cfg(feature = "wgpu")]
+mod wgpu_tanh_tests {
+    use super::*;
+
+    #[test]
+    fn test_wgpu_tanh_basic() {
+        // Create a simple tensor and apply tanh
+        let tensor = Tensor::from_vec(vec![-2.0, -1.0, 0.0, 1.0, 2.0], vec![5]).unwrap();
+        
+        // Apply tanh operation 
+        let result = tensor.tanh().unwrap();
+        
+        let actual = result.to_vec().unwrap();
+        
+        // Check that tanh values are in expected ranges
+        assert!(actual[0] < -0.9); // tanh(-2) ≈ -0.964
+        assert!(actual[1] < -0.7); // tanh(-1) ≈ -0.762
+        assert!((actual[2] - 0.0).abs() < 1e-6); // tanh(0) = 0
+        assert!(actual[3] > 0.7); // tanh(1) ≈ 0.762
+        assert!(actual[4] > 0.9); // tanh(2) ≈ 0.964
+        
+        // More precise checks with expected values
+        let expected_tanh_2 = 2.0_f32.tanh();
+        let expected_tanh_1 = 1.0_f32.tanh();
+        
+        assert!((actual[0] - (-expected_tanh_2)).abs() < 1e-3, "tanh(-2) expected: {}, got: {}", -expected_tanh_2, actual[0]);
+        assert!((actual[1] - (-expected_tanh_1)).abs() < 1e-3, "tanh(-1) expected: {}, got: {}", -expected_tanh_1, actual[1]);
+        assert!((actual[3] - expected_tanh_1).abs() < 1e-3, "tanh(1) expected: {}, got: {}", expected_tanh_1, actual[3]);
+        assert!((actual[4] - expected_tanh_2).abs() < 1e-3, "tanh(2) expected: {}, got: {}", expected_tanh_2, actual[4]);
+    }
+
+    #[test] 
+    fn test_wgpu_tanh_extreme_values() {
+        // Test extreme values where tanh should saturate
+        let tensor = Tensor::from_vec(vec![-10.0, 0.0, 10.0], vec![3]).unwrap();
+        let result = tensor.tanh().unwrap();
+
+        let actual = result.to_vec().unwrap();
+        assert!(actual[0] < -0.999); // tanh(-10) ≈ -1
+        assert!((actual[1] - 0.0).abs() < 1e-6); // tanh(0) = 0
+        assert!(actual[2] > 0.999); // tanh(10) ≈ 1
+    }
+
+    #[test]
+    fn test_wgpu_matmul_basic() {
+        // Test basic 2D matrix multiplication
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
+        let b = Tensor::from_vec(vec![5.0, 6.0, 7.0, 8.0], vec![2, 2]).unwrap();
+
+        let result = a.matmul(&b).unwrap();
+        assert_eq!(result.shape().dims(), &[2, 2]);
+
+        let expected = vec![19.0, 22.0, 43.0, 50.0]; // Manual calculation: [1*5+2*7, 1*6+2*8, 3*5+4*7, 3*6+4*8]
+        let actual = result.to_vec().unwrap();
+
+        for (a, b) in expected.iter().zip(actual.iter()) {
+            assert!((a - b).abs() < 1e-6, "Expected {}, got {}", a, b);
+        }
+    }
+
+    #[test]
+    fn test_wgpu_matmul_different_shapes() {
+        // Test matrix multiplication with different shapes
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![2, 3]).unwrap(); // 2x3
+        let b = Tensor::from_vec(vec![7.0, 8.0, 9.0, 10.0, 11.0, 12.0], vec![3, 2]).unwrap(); // 3x2
+
+        let result = a.matmul(&b).unwrap();
+        assert_eq!(result.shape().dims(), &[2, 2]);
+
+        // Expected: [[58, 64], [139, 154]]
+        // First row: [1*7+2*9+3*11, 1*8+2*10+3*12] = [58, 64]
+        // Second row: [4*7+5*9+6*11, 4*8+5*10+6*12] = [139, 154]
+        let expected = vec![58.0, 64.0, 139.0, 154.0];
+        let actual = result.to_vec().unwrap();
+
+        for (a, b) in expected.iter().zip(actual.iter()) {
+            assert!((a - b).abs() < 1e-6, "Expected {}, got {}", a, b);
+        }
+    }
+
+    #[test]
+    fn test_wgpu_bmm_basic() {
+        // Test basic batched matrix multiplication
+        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0], vec![2, 2, 2]).unwrap();
+        let b = Tensor::from_vec(vec![1.0, 0.0, 0.0, 1.0, 2.0, 0.0, 0.0, 2.0], vec![2, 2, 2]).unwrap();
+
+        let result = a.bmm(&b).unwrap();
+        assert_eq!(result.shape().dims(), &[2, 2, 2]);
+
+        // First batch: identity multiplication, second batch: scaling by 2
+        let expected = vec![1.0, 2.0, 3.0, 4.0, 10.0, 12.0, 14.0, 16.0];
+        let actual = result.to_vec().unwrap();
+
+        for (a, b) in expected.iter().zip(actual.iter()) {
+            assert!((a - b).abs() < 1e-6, "Expected {}, got {}", a, b);
+        }
+    }
+}

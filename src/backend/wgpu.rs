@@ -299,6 +299,334 @@ impl WgpuBackend {
             size: lhs.size,
         }))
     }
+
+    fn unary_operation(&self, input: &WgpuStorage, operation: &str) -> Result<Storage> {
+        // Read WGSL shader source from file based on operation
+        let shader_filename = match operation {
+            "tanh" => "tanh.wgsl",
+            "exp" => "exp.wgsl",
+            _ => {
+                return Err(TensorError::BackendError(format!(
+                    "Unknown unary operation: {}",
+                    operation
+                )));
+            }
+        };
+
+        let mut shader_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        shader_path.push("src");
+        shader_path.push("shaders");
+        shader_path.push(shader_filename);
+
+        let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
+            TensorError::BackendError(format!(
+                "Failed to read shader file {}: {}",
+                shader_path.display(),
+                e
+            ))
+        })?;
+
+        let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
+
+        let result_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("Unary Result Buffer"),
+            size: (input.size * std::mem::size_of::<f32>()) as u64,
+            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("Unary Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: input.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: result_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("Unary Compute Encoder"),
+            });
+
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("Unary Compute Pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+
+            let workgroup_count = (input.size + 63) / 64; // Round up division
+            compute_pass.dispatch_workgroups(workgroup_count as u32, 1, 1);
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: Arc::new(result_buffer),
+            device: self.device.clone(),
+            queue: self.queue.clone(),
+            size: input.size,
+        }))
+    }
+
+    fn matrix_multiply_operation(
+        &self,
+        lhs: &WgpuStorage,
+        rhs: &WgpuStorage,
+        lhs_shape: &Shape,
+        rhs_shape: &Shape,
+    ) -> Result<Storage> {
+        let lhs_dims = lhs_shape.dims();
+        let rhs_dims = rhs_shape.dims();
+
+        // Validate shapes for 2D matrix multiplication
+        if lhs_dims.len() != 2 || rhs_dims.len() != 2 {
+            return Err(TensorError::BackendError(
+                "Matrix multiplication requires 2D tensors".to_string(),
+            ));
+        }
+
+        let m = lhs_dims[0] as u32;
+        let k = lhs_dims[1] as u32;
+        let k2 = rhs_dims[0] as u32;
+        let n = rhs_dims[1] as u32;
+
+        if k != k2 {
+            return Err(TensorError::ShapeMismatch {
+                expected: vec![k as usize],
+                got: vec![k2 as usize],
+            });
+        }
+
+        // Read matrix multiplication shader
+        let mut shader_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        shader_path.push("src");
+        shader_path.push("shaders");
+        shader_path.push("matmul.wgsl");
+
+        let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
+            TensorError::BackendError(format!(
+                "Failed to read matmul shader: {}",
+                e
+            ))
+        })?;
+
+        let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
+
+        // Create result buffer
+        let result_size = (m * n) as usize;
+        let result_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("MatMul Result Buffer"),
+            size: (result_size * std::mem::size_of::<f32>()) as u64,
+            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Create uniform buffer for dimensions
+        use wgpu::util::DeviceExt;
+        let dimensions = [m, k, k, n]; // [M, K, K, N]
+        let uniform_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("MatMul Dimensions"),
+                contents: bytemuck::cast_slice(&dimensions),
+                usage: BufferUsages::UNIFORM,
+            });
+
+        // Create bind group
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("MatMul Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: lhs.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: rhs.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: result_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("MatMul Encoder"),
+            });
+
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("MatMul Pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+
+            // Dispatch with 16x16 workgroup size
+            let workgroups_x = (m + 15) / 16;
+            let workgroups_y = (n + 15) / 16;
+            compute_pass.dispatch_workgroups(workgroups_x, workgroups_y, 1);
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: Arc::new(result_buffer),
+            device: self.device.clone(),
+            queue: self.queue.clone(),
+            size: result_size,
+        }))
+    }
+
+    fn batched_matrix_multiply_operation(
+        &self,
+        lhs: &WgpuStorage,
+        rhs: &WgpuStorage,
+        lhs_shape: &Shape,
+        rhs_shape: &Shape,
+    ) -> Result<Storage> {
+        let lhs_dims = lhs_shape.dims();
+        let rhs_dims = rhs_shape.dims();
+
+        // Validate shapes for 3D batched matrix multiplication
+        if lhs_dims.len() != 3 || rhs_dims.len() != 3 {
+            return Err(TensorError::BackendError(
+                "Batched matrix multiplication requires 3D tensors".to_string(),
+            ));
+        }
+
+        let batch_size = lhs_dims[0] as u32;
+        let m = lhs_dims[1] as u32;
+        let k = lhs_dims[2] as u32;
+
+        let batch_size2 = rhs_dims[0] as u32;
+        let k2 = rhs_dims[1] as u32;
+        let n = rhs_dims[2] as u32;
+
+        if batch_size != batch_size2 {
+            return Err(TensorError::ShapeMismatch {
+                expected: vec![batch_size as usize],
+                got: vec![batch_size2 as usize],
+            });
+        }
+
+        if k != k2 {
+            return Err(TensorError::ShapeMismatch {
+                expected: vec![k as usize],
+                got: vec![k2 as usize],
+            });
+        }
+
+        // Read batched matrix multiplication shader
+        let mut shader_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        shader_path.push("src");
+        shader_path.push("shaders");
+        shader_path.push("bmm.wgsl");
+
+        let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
+            TensorError::BackendError(format!(
+                "Failed to read bmm shader: {}",
+                e
+            ))
+        })?;
+
+        let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
+
+        // Create result buffer
+        let result_size = (batch_size * m * n) as usize;
+        let result_buffer = self.device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("BMM Result Buffer"),
+            size: (result_size * std::mem::size_of::<f32>()) as u64,
+            usage: BufferUsages::STORAGE | BufferUsages::COPY_SRC,
+            mapped_at_creation: false,
+        });
+
+        // Create uniform buffer for dimensions
+        use wgpu::util::DeviceExt;
+        let dimensions = [batch_size, m, k, n]; // [batch_size, M, K, N]
+        let uniform_buffer = self
+            .device
+            .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                label: Some("BMM Dimensions"),
+                contents: bytemuck::cast_slice(&dimensions),
+                usage: BufferUsages::UNIFORM,
+            });
+
+        // Create bind group
+        let bind_group_layout = pipeline.get_bind_group_layout(0);
+        let bind_group = self.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            label: Some("BMM Bind Group"),
+            layout: &bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: lhs.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 1,
+                    resource: rhs.buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
+                    resource: result_buffer.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 3,
+                    resource: uniform_buffer.as_entire_binding(),
+                },
+            ],
+        });
+
+        let mut encoder = self
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                label: Some("BMM Encoder"),
+            });
+
+        {
+            let mut compute_pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
+                label: Some("BMM Pass"),
+                timestamp_writes: None,
+            });
+            compute_pass.set_pipeline(&pipeline);
+            compute_pass.set_bind_group(0, &bind_group, &[]);
+
+            // Dispatch with 8x8x4 workgroup size
+            let workgroups_x = (m + 7) / 8;
+            let workgroups_y = (n + 7) / 8;
+            let workgroups_z = (batch_size + 3) / 4;
+            compute_pass.dispatch_workgroups(workgroups_x, workgroups_y, workgroups_z);
+        }
+
+        self.queue.submit(std::iter::once(encoder.finish()));
+
+        Ok(Storage::Wgpu(WgpuStorage {
+            buffer: Arc::new(result_buffer),
+            device: self.device.clone(),
+            queue: self.queue.clone(),
+            size: result_size,
+        }))
+    }
 }
 
 pub fn is_available() -> bool {
@@ -691,17 +1019,25 @@ impl Backend for WgpuBackend {
 
     fn matmul(
         &self,
-        _lhs: &Storage,
-        _rhs: &Storage,
-        _lhs_shape: &Shape,
-        _rhs_shape: &Shape,
+        lhs: &Storage,
+        rhs: &Storage,
+        lhs_shape: &Shape,
+        rhs_shape: &Shape,
     ) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU matrix multiplication
-            Err(TensorError::BackendError(
-                "Matrix multiplication not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let lhs_data = self.to_vec_f32(lhs)?;
+            let rhs_data = self.to_vec_f32(rhs)?;
+
+            let lhs_wgpu_storage = self.from_slice(&lhs_data, lhs_shape)?;
+            let rhs_wgpu_storage = self.from_slice(&rhs_data, rhs_shape)?;
+
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage) else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+
+            self.matrix_multiply_operation(a, b, lhs_shape, rhs_shape)
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -711,17 +1047,25 @@ impl Backend for WgpuBackend {
 
     fn bmm(
         &self,
-        _lhs: &Storage,
-        _rhs: &Storage,
-        _lhs_shape: &Shape,
-        _rhs_shape: &Shape,
+        lhs: &Storage,
+        rhs: &Storage,
+        lhs_shape: &Shape,
+        rhs_shape: &Shape,
     ) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU batched matrix multiplication
-            Err(TensorError::BackendError(
-                "Batched matrix multiplication not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let lhs_data = self.to_vec_f32(lhs)?;
+            let rhs_data = self.to_vec_f32(rhs)?;
+
+            let lhs_wgpu_storage = self.from_slice(&lhs_data, lhs_shape)?;
+            let rhs_wgpu_storage = self.from_slice(&rhs_data, rhs_shape)?;
+
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage) else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+
+            self.batched_matrix_multiply_operation(a, b, lhs_shape, rhs_shape)
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -729,13 +1073,18 @@ impl Backend for WgpuBackend {
         ))
     }
 
-    fn exp(&self, _storage: &Storage) -> Result<Storage> {
+    fn exp(&self, storage: &Storage) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU exp function
-            Err(TensorError::BackendError(
-                "Exp function not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let data = self.to_vec_f32(storage)?;
+            let shape = Shape::new(vec![data.len()])?;
+            let wgpu_storage = self.from_slice(&data, &shape)?;
+
+            let Storage::Wgpu(input) = &wgpu_storage else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+            self.unary_operation(input, "exp")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
@@ -841,13 +1190,18 @@ impl Backend for WgpuBackend {
         ))
     }
 
-    fn tanh(&self, _storage: &Storage) -> Result<Storage> {
+    fn tanh(&self, storage: &Storage) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU tanh function
-            Err(TensorError::BackendError(
-                "Tanh function not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let data = self.to_vec_f32(storage)?;
+            let shape = Shape::new(vec![data.len()])?;
+            let wgpu_storage = self.from_slice(&data, &shape)?;
+
+            let Storage::Wgpu(input) = &wgpu_storage else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+            self.unary_operation(input, "tanh")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
