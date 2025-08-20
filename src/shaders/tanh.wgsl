@@ -19,8 +19,8 @@ fn main(@builtin(global_invocation_id) global_id: vec3<u32>) {
     if (abs(x) > 15.0) {
         // For very large |x|, tanh(x) ≈ sign(x)
         output[index] = sign(x);
-    } else if (abs(x) > 1.0) {
-        // For moderate |x|, use the standard formula
+    } else if (abs(x) >= 1.0) {
+        // For moderate to large |x|, use the standard formula
         let exp_2x = exp(2.0 * x);
         output[index] = (exp_2x - 1.0) / (exp_2x + 1.0);
     } else {
