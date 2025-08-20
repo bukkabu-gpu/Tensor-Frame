@@ -304,6 +304,7 @@ impl WgpuBackend {
         // Read WGSL shader source from file based on operation
         let shader_filename = match operation {
             "tanh" => "tanh.wgsl",
+            "exp" => "exp.wgsl",
             _ => {
                 return Err(TensorError::BackendError(format!(
                     "Unknown unary operation: {}",
@@ -1072,13 +1073,18 @@ impl Backend for WgpuBackend {
         ))
     }
 
-    fn exp(&self, _storage: &Storage) -> Result<Storage> {
+    fn exp(&self, storage: &Storage) -> Result<Storage> {
         #[cfg(feature = "wgpu")]
         {
-            // TODO: Implement WGPU exp function
-            Err(TensorError::BackendError(
-                "Exp function not yet implemented for WGPU backend".to_string(),
-            ))
+            // Convert storage to WGPU storage if needed
+            let data = self.to_vec_f32(storage)?;
+            let shape = Shape::new(vec![data.len()])?;
+            let wgpu_storage = self.from_slice(&data, &shape)?;
+
+            let Storage::Wgpu(input) = &wgpu_storage else {
+                unreachable!("WGPU backend should always create WGPU storage")
+            };
+            self.unary_operation(input, "exp")
         }
         #[cfg(not(feature = "wgpu"))]
         Err(TensorError::BackendError(
