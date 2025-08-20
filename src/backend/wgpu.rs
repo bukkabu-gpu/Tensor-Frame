@@ -226,7 +226,7 @@ impl WgpuBackend {
                 return Err(TensorError::BackendError(format!(
                     "Unknown operation: {}",
                     operation
-                )))
+                )));
             }
         };
 

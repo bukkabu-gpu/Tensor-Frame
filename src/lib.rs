@@ -85,7 +85,7 @@ pub use backend::Backend;
 /// Error types and Result alias for the library
 pub use error::{Result, TensorError};
 /// Core tensor types and operations
-pub use tensor::{ops::TensorOps, shape::Shape, Tensor};
+pub use tensor::{Tensor, ops::TensorOps, shape::Shape};
 
 #[cfg(test)]
 mod tests {
@@ -221,7 +221,7 @@ mod tests {
     fn test_broadcast_scalar() {
         let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]).unwrap();
         let b = Tensor::from_vec(vec![5.0], vec![]).unwrap(); // scalar
-                                                              // Test shape compatibility
+        // Test shape compatibility
         assert_eq!(a.shape().dims(), &[2, 2]);
         assert_eq!(b.shape().dims(), &[] as &[usize]);
     }

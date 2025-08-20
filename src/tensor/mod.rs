@@ -7,7 +7,7 @@ pub mod broadcast;
 pub mod ops;
 pub mod shape;
 
-use crate::backend::{Storage, BACKENDS};
+use crate::backend::{BACKENDS, Storage};
 use crate::error::{Result, TensorError};
 use broadcast::broadcast_data;
 use ops::TensorOps;
@@ -419,7 +419,7 @@ impl Add for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                        })
+                        });
                     }
                     Err(_) => continue,
                 }
@@ -450,7 +450,7 @@ impl Add for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                            })
+                            });
                         }
                         Err(_) => continue,
                     }
@@ -489,7 +489,7 @@ impl Sub for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                        })
+                        });
                     }
                     Err(_) => continue,
                 }
@@ -520,7 +520,7 @@ impl Sub for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                            })
+                            });
                         }
                         Err(_) => continue,
                     }
@@ -559,7 +559,7 @@ impl Mul for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                        })
+                        });
                     }
                     Err(_) => continue,
                 }
@@ -590,7 +590,7 @@ impl Mul for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                            })
+                            });
                         }
                         Err(_) => continue,
                     }
@@ -629,7 +629,7 @@ impl Div for Tensor {
                         return Ok(Tensor {
                             storage,
                             shape: self.shape,
-                        })
+                        });
                     }
                     Err(_) => continue,
                 }
@@ -660,7 +660,7 @@ impl Div for Tensor {
                             return Ok(Tensor {
                                 storage,
                                 shape: result_shape,
-                            })
+                            });
                         }
                         Err(_) => continue,
                     }
