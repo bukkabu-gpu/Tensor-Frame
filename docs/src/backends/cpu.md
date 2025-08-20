@@ -16,14 +16,14 @@ The CPU backend is enabled by default:
 
 ```toml
 [dependencies]
-tensor_frame = "0.0.2-alpha"  # CPU backend included
+tensor_frame = "0.0.3-alpha"  # CPU backend included
 ```
 
 Or explicitly:
 
 ```toml
 [dependencies]
-tensor_frame = { version = "0.0.2-alpha", features = ["cpu"] }
+tensor_frame = { version = "0.0.3-alpha", features = ["cpu"] }
 ```
 
 ## Implementation Details
@@ -274,7 +274,7 @@ For maximum performance, consider linking with optimized BLAS:
 
 ```toml
 [dependencies]
-tensor_frame = "0.0.2-alpha"
+tensor_frame = "0.0.3-alpha"
 blas-src = { version = "0.8", features = ["openblas"] }
 ```
 

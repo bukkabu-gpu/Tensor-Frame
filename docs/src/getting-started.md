@@ -6,7 +6,7 @@ Add Tensor Frame to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-tensor_frame = "0.0.2-alpha"
+tensor_frame = "0.0.3-alpha"
 ```
 
 ### Feature Flags
@@ -16,16 +16,16 @@ Tensor Frame supports optional backends via feature flags:
 ```toml
 [dependencies]
 # CPU only (default)
-tensor_frame = "0.0.2-alpha"
+tensor_frame = "0.0.3-alpha"
 
 # With WGPU support
-tensor_frame = { version = "0.0.2-alpha", features = ["wgpu"] }
+tensor_frame = { version = "0.0.3-alpha", features = ["wgpu"] }
 
 # With CUDA support  
-tensor_frame = { version = "0.0.2-alpha", features = ["cuda"] }
+tensor_frame = { version = "0.0.3-alpha", features = ["cuda"] }
 
 # All backends
-tensor_frame = { version = "0.0.2-alpha", features = ["wgpu", "cuda"] }
+tensor_frame = { version = "0.0.3-alpha", features = ["wgpu", "cuda"] }
 ```
 
 ## Basic Usage

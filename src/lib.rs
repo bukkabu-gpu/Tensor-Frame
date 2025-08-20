@@ -40,13 +40,13 @@
 //!
 //! ```toml
 //! # CPU backend (default)
-//! tensor_frame = "0.0.2-alpha"
+//! tensor_frame = "0.0.3-alpha"
 //!
 //! # WGPU backend
-//! tensor_frame = { version = "0.0.2-alpha", features = ["wgpu"] }
+//! tensor_frame = { version = "0.0.3-alpha", features = ["wgpu"] }
 //!
 //! # CUDA backend
-//! tensor_frame = { version = "0.0.2-alpha", features = ["cuda"] }
+//! tensor_frame = { version = "0.0.3-alpha", features = ["cuda"] }
 //! ```
 //!
 //! ## Examples
