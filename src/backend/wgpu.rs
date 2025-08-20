@@ -415,10 +415,7 @@ impl WgpuBackend {
         shader_path.push("matmul.wgsl");
 
         let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
-            TensorError::BackendError(format!(
-                "Failed to read matmul shader: {}",
-                e
-            ))
+            TensorError::BackendError(format!("Failed to read matmul shader: {}", e))
         })?;
 
         let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
@@ -543,12 +540,8 @@ impl WgpuBackend {
         shader_path.push("shaders");
         shader_path.push("bmm.wgsl");
 
-        let shader_source = fs::read_to_string(&shader_path).map_err(|e| {
-            TensorError::BackendError(format!(
-                "Failed to read bmm shader: {}",
-                e
-            ))
-        })?;
+        let shader_source = fs::read_to_string(&shader_path)
+            .map_err(|e| TensorError::BackendError(format!("Failed to read bmm shader: {}", e)))?;
 
         let pipeline = self.create_compute_pipeline(&shader_source, "main")?;
 
@@ -1033,7 +1026,8 @@ impl Backend for WgpuBackend {
             let lhs_wgpu_storage = self.from_slice(&lhs_data, lhs_shape)?;
             let rhs_wgpu_storage = self.from_slice(&rhs_data, rhs_shape)?;
 
-            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage) else {
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage)
+            else {
                 unreachable!("WGPU backend should always create WGPU storage")
             };
 
@@ -1061,7 +1055,8 @@ impl Backend for WgpuBackend {
             let lhs_wgpu_storage = self.from_slice(&lhs_data, lhs_shape)?;
             let rhs_wgpu_storage = self.from_slice(&rhs_data, rhs_shape)?;
 
-            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage) else {
+            let (Storage::Wgpu(a), Storage::Wgpu(b)) = (&lhs_wgpu_storage, &rhs_wgpu_storage)
+            else {
                 unreachable!("WGPU backend should always create WGPU storage")
             };
 
