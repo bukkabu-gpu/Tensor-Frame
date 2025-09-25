@@ -454,4 +454,12 @@ pub trait TensorOps {
     fn cosh(&self) -> Result<Self>
     where
         Self: Sized;
+
+    fn max(&self, max: f32) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn min(&self, min: f32) -> Result<Self>
+    where
+        Self: Sized;
 }

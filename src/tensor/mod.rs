@@ -1110,6 +1110,40 @@ impl TensorOps for Tensor {
             "No backend could perform cosh operation".to_string(),
         ))
     }
+
+    fn max(&self, max: f32) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.max(&self.storage, max) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform max operation".to_string(),
+        ))
+    }
+
+    fn min(&self, min: f32) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.min(&self.storage, min) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform min operation".to_string(),
+        ))
+    }
 }
 
 impl fmt::Display for Tensor {
