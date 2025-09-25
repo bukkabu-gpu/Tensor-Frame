@@ -72,6 +72,7 @@ impl CudaBackend {
                     "sin_kernel",
                     "cos_kernel",
                     "relu_kernel",
+                    "mask_for_grad_relu_kernel"
                     "sigmoid_kernel",
                     "tanh_kernel",
                     "sinh_kernel",
@@ -997,6 +998,17 @@ impl Backend for CudaBackend {
         #[cfg(feature = "cuda")]
         {
             self.launch_unary_math_kernel("relu_kernel", storage)
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("mask_for_grad_relu", storage)
         }
         #[cfg(not(feature = "cuda"))]
         Err(TensorError::BackendError(

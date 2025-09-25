@@ -123,6 +123,8 @@ pub trait Backend: Debug + Send + Sync {
     /// Element-wise ReLU activation function.
     fn relu(&self, storage: &Storage) -> Result<Storage>;
 
+    fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage>;
+
     /// Element-wise sigmoid activation function.
     fn sigmoid(&self, storage: &Storage) -> Result<Storage>;
 

@@ -404,6 +404,15 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
     }
 
+    fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data
+            .iter()
+            .map(|&x| if x > 0.0 { 1.0 } else { 0.0 })
+            .collect();
+        Ok(Storage::Cpu(result))
+    }
+
     fn sigmoid(&self, storage: &Storage) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data.iter().map(|&x| 1.0 / (1.0 + (-x).exp())).collect();
