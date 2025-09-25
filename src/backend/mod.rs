@@ -128,6 +128,10 @@ pub trait Backend: Debug + Send + Sync {
 
     /// Element-wise tanh activation function.
     fn tanh(&self, storage: &Storage) -> Result<Storage>;
+
+    fn sinh(&self, storage: &Storage) -> Result<Storage>;
+
+    fn cosh(&self, storage: &Storage) -> Result<Storage>;
 }
 
 /// Backend-specific storage for tensor data.

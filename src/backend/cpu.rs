@@ -415,4 +415,16 @@ impl Backend for CpuBackend {
         let result: Vec<f32> = data.iter().map(|&x| x.tanh()).collect();
         Ok(Storage::Cpu(result))
     }
+
+    fn sinh(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| x.sinh()).collect();
+        Ok(Storage::Cpu(result))
+    }
+
+    fn cosh(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| x.cosh()).collect();
+        Ok(Storage::Cpu(result))
+    }
 }

@@ -74,6 +74,8 @@ impl CudaBackend {
                     "relu_kernel",
                     "sigmoid_kernel",
                     "tanh_kernel",
+                    "sinh_kernel",
+                    "cosh_kernel",
                 ],
             ),
         ];
@@ -1017,6 +1019,28 @@ impl Backend for CudaBackend {
         #[cfg(feature = "cuda")]
         {
             self.launch_unary_math_kernel("tanh_kernel", storage)
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn sinh(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("sinh_kernel", storage)
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn cosh(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("cosh_kernel", storage)
         }
         #[cfg(not(feature = "cuda"))]
         Err(TensorError::BackendError(
