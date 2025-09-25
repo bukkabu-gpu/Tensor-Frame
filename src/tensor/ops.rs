@@ -402,6 +402,9 @@ pub trait TensorOps {
     where
         Self: Sized;
 
+    fn mask_for_grad_relu(&self) -> Result<Self>
+    where
+        Self: Sized;
     /// Element-wise sigmoid activation function.
     ///
     /// Applies sigmoid: 1 / (1 + e^(-x)) to each element.

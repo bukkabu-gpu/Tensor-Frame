@@ -1026,6 +1026,23 @@ impl TensorOps for Tensor {
         ))
     }
 
+    fn mask_for_grad_relu(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.mask_for_grad_relu(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform mask_for_grad_relu operation".to_string(),
+        ))
+    }
+
     fn sigmoid(&self) -> Result<Self> {
         for backend in &BACKENDS[0..] {
             match backend.sigmoid(&self.storage) {
