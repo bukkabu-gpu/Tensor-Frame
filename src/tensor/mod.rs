@@ -1059,6 +1059,40 @@ impl TensorOps for Tensor {
             "No backend could perform tanh operation".to_string(),
         ))
     }
+
+    fn sinh(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.sinh(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform sinh operation".to_string(),
+        ))
+    }
+
+    fn cosh(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.cosh(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform cosh operation".to_string(),
+        ))
+    }
 }
 
 impl fmt::Display for Tensor {

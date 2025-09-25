@@ -443,4 +443,12 @@ pub trait TensorOps {
     fn tanh(&self) -> Result<Self>
     where
         Self: Sized;
+
+    fn sinh(&self) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn cosh(&self) -> Result<Self>
+    where
+        Self: Sized;
 }
