@@ -49,6 +49,22 @@ __global__ void cos_kernel(const float* input, float* output, int size) {
     }
 }
 
+// sinh function
+__global__ void sinh_kernel(const float* input, float* output, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = sinhf(input[idx]);
+    }
+}
+
+// cosh function
+__global__ void cosh_kernel(const float* input, float* output, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = coshf(input[idx]);
+    }
+}
+
 // ReLU activation function
 __global__ void relu_kernel(const float* input, float* output, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -72,5 +88,7 @@ __global__ void tanh_kernel(const float* input, float* output, int size) {
         output[idx] = tanhf(input[idx]);
     }
 }
+
+
 
 } // extern "C"
