@@ -455,11 +455,11 @@ pub trait TensorOps {
     where
         Self: Sized;
 
-    fn max(&self, max: f32) -> Result<Self>
+    fn clamp_max(&self, max: f32) -> Result<Self>
     where
         Self: Sized;
 
-    fn min(&self, min: f32) -> Result<Self>
+    fn clamp_min(&self, min: f32) -> Result<Self>
     where
         Self: Sized;
 }

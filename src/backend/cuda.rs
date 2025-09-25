@@ -1062,7 +1062,7 @@ impl Backend for CudaBackend {
         ))
     }
 
-    fn max(&self, storage: &Storage, max: f32) -> Result<Storage> {
+    fn clamp_max(&self, storage: &Storage, max: f32) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             match storage {
@@ -1077,8 +1077,8 @@ impl Backend for CudaBackend {
                             ))
                         })?;
 
-                    let kernel = self.kernels.get("max_kernel").ok_or_else(|| {
-                        TensorError::BackendError("max_kernel not found".to_string())
+                    let kernel = self.kernels.get("clamp_max_kernel").ok_or_else(|| {
+                        TensorError::BackendError("clamp_max_kernel not found".to_string())
                     })?;
 
                     let size = cuda_storage.buffer.len();
@@ -1092,7 +1092,10 @@ impl Backend for CudaBackend {
                     builder.arg(&size_arg);
 
                     unsafe { builder.launch(cfg) }.map_err(|e| {
-                        TensorError::BackendError(format!("Failed to launch max kernel: {}", e))
+                        TensorError::BackendError(format!(
+                            "Failed to launch clamp_max kernel: {}",
+                            e
+                        ))
                     })?;
 
                     Ok(Storage::Cuda(CudaStorage {
@@ -1104,7 +1107,7 @@ impl Backend for CudaBackend {
                     let data = self.to_vec_f32(storage)?;
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
-                    self.max(&cuda_storage, max)
+                    self.clamp_max(&cuda_storage, max)
                 }
             }
         }
@@ -1114,7 +1117,7 @@ impl Backend for CudaBackend {
         ))
     }
 
-    fn min(&self, storage: &Storage, min: f32) -> Result<Storage> {
+    fn clamp_min(&self, storage: &Storage, min: f32) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             match storage {
@@ -1129,8 +1132,8 @@ impl Backend for CudaBackend {
                             ))
                         })?;
 
-                    let kernel = self.kernels.get("min_kernel").ok_or_else(|| {
-                        TensorError::BackendError("min_kernel not found".to_string())
+                    let kernel = self.kernels.get("clamp_min_kernel").ok_or_else(|| {
+                        TensorError::BackendError("clamp_min_kernel not found".to_string())
                     })?;
 
                     let size = cuda_storage.buffer.len();
@@ -1144,7 +1147,10 @@ impl Backend for CudaBackend {
                     builder.arg(&size_arg);
 
                     unsafe { builder.launch(cfg) }.map_err(|e| {
-                        TensorError::BackendError(format!("Failed to launch min kernel: {}", e))
+                        TensorError::BackendError(format!(
+                            "Failed to launch clamp_min kernel: {}",
+                            e
+                        ))
                     })?;
 
                     Ok(Storage::Cuda(CudaStorage {
@@ -1156,7 +1162,7 @@ impl Backend for CudaBackend {
                     let data = self.to_vec_f32(storage)?;
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
-                    self.min(&cuda_storage, min)
+                    self.clamp_min(&cuda_storage, min)
                 }
             }
         }

@@ -135,9 +135,9 @@ pub trait Backend: Debug + Send + Sync {
 
     fn cosh(&self, storage: &Storage) -> Result<Storage>;
 
-    fn max(&self, storage: &Storage, max: f32) -> Result<Storage>;
+    fn clamp_max(&self, storage: &Storage, max: f32) -> Result<Storage>;
 
-    fn min(&self, storage: &Storage, min: f32) -> Result<Storage>;
+    fn clamp_min(&self, storage: &Storage, min: f32) -> Result<Storage>;
 }
 
 /// Backend-specific storage for tensor data.

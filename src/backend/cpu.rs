@@ -437,7 +437,7 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
     }
 
-    fn max(&self, storage: &Storage, max: f32) -> Result<Storage> {
+    fn clamp_max(&self, storage: &Storage, max: f32) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data
             .iter()
@@ -446,7 +446,7 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
     }
 
-    fn min(&self, storage: &Storage, min: f32) -> Result<Storage> {
+    fn clamp_min(&self, storage: &Storage, min: f32) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data
             .iter()

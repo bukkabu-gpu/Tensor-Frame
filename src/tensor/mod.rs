@@ -1111,9 +1111,9 @@ impl TensorOps for Tensor {
         ))
     }
 
-    fn max(&self, max: f32) -> Result<Self> {
+    fn clamp_max(&self, max: f32) -> Result<Self> {
         for backend in &BACKENDS[0..] {
-            match backend.max(&self.storage, max) {
+            match backend.clamp_max(&self.storage, max) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,
@@ -1128,9 +1128,9 @@ impl TensorOps for Tensor {
         ))
     }
 
-    fn min(&self, min: f32) -> Result<Self> {
+    fn clamp_min(&self, min: f32) -> Result<Self> {
         for backend in &BACKENDS[0..] {
-            match backend.min(&self.storage, min) {
+            match backend.clamp_min(&self.storage, min) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,
