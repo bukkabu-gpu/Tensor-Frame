@@ -98,5 +98,19 @@ __global__ void tanh_kernel(const float* input, float* output, int size) {
 }
 
 
+__global__ void max_kernel(const float* input, float* output, float max, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = fmaxf(input[idx],max);
+    }
+}
+
+__global__ void min_kernel(const float* input, float* output, float min, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = fminf(input[idx], min);
+    }
+}
+
 
 } // extern "C"
