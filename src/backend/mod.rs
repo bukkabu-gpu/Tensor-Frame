@@ -134,6 +134,10 @@ pub trait Backend: Debug + Send + Sync {
     fn sinh(&self, storage: &Storage) -> Result<Storage>;
 
     fn cosh(&self, storage: &Storage) -> Result<Storage>;
+
+    fn max(&self, storage: &Storage, max: f32) -> Result<Storage>;
+
+    fn min(&self, storage: &Storage, min: f32) -> Result<Storage>;
 }
 
 /// Backend-specific storage for tensor data.

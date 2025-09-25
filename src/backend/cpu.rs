@@ -436,4 +436,22 @@ impl Backend for CpuBackend {
         let result: Vec<f32> = data.iter().map(|&x| x.cosh()).collect();
         Ok(Storage::Cpu(result))
     }
+
+    fn max(&self, storage: &Storage, max: f32) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data
+            .iter()
+            .map(|&x| if x > max { max } else { x })
+            .collect();
+        Ok(Storage::Cpu(result))
+    }
+
+    fn min(&self, storage: &Storage, min: f32) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data
+            .iter()
+            .map(|&x| if x < min { min } else { x })
+            .collect();
+        Ok(Storage::Cpu(result))
+    }
 }
