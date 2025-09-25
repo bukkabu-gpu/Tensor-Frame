@@ -73,6 +73,14 @@ __global__ void relu_kernel(const float* input, float* output, int size) {
     }
 }
 
+// ReLU backward function
+__global__ void mask_for_grad_relu_kernel(const float* input, float* output, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = (float)(input[idx]> 0.0f);
+    }
+}
+
 // Sigmoid activation function
 __global__ void sigmoid_kernel(const float* input, float* output, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
