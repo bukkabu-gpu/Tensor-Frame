@@ -72,7 +72,7 @@ impl CudaBackend {
                     "sin_kernel",
                     "cos_kernel",
                     "relu_kernel",
-                    "mask_for_grad_relu_kernel"
+                    "mask_for_grad_relu_kernel",
                     "sigmoid_kernel",
                     "tanh_kernel",
                     "sinh_kernel",
