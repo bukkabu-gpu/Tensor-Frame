@@ -322,6 +322,9 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("add_kernel", a, b)
                 }
+                _ => {
+                    panic!("Unsupported combination of storages");
+                }
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -352,6 +355,9 @@ impl Backend for CudaBackend {
             match (&lhs_storage, &rhs_storage) {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("sub_kernel", a, b)
+                }
+                _ => {
+                    panic!("Unsupported combination of storages");
                 }
             }
         }
@@ -384,6 +390,9 @@ impl Backend for CudaBackend {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("mul_kernel", a, b)
                 }
+                _ => {
+                    panic!("Unsupported combination of storages");
+                }
             }
         }
         #[cfg(not(feature = "cuda"))]
@@ -414,6 +423,9 @@ impl Backend for CudaBackend {
             match (&lhs_storage, &rhs_storage) {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("div_kernel", a, b)
+                }
+                _ => {
+                    panic!("Unsupported combination of storages");
                 }
             }
         }
@@ -682,6 +694,9 @@ impl Backend for CudaBackend {
                         })?;
                     Ok(result)
                 }
+                _ => {
+                    panic!("Unsupported combination of storages");
+                }
                 #[cfg(feature = "cpu")]
                 Storage::Cpu(data) => Ok(data.clone()),
                 #[cfg(feature = "wgpu")]
@@ -777,6 +792,9 @@ impl Backend for CudaBackend {
                     Ok(Storage::Cuda(CudaStorage {
                         buffer: std::sync::Arc::new(result_buf),
                     }))
+                }
+                _ => {
+                    panic!("Unsupported combination of storages");
                 }
                 _ => Err(TensorError::BackendError(
                     "Invalid storage types for CUDA matmul".to_string(),
