@@ -572,7 +572,9 @@ impl Backend for CudaBackend {
                     {
                         let sum_result = self.sum(storage, shape, axis)?;
 
-                        let Storage::Cuda(sum_storage) = sum_result;
+                        let Storage::Cuda(sum_storage) = sum_result else {
+                            panic!("想定外のバックエンド: この関数はCUDA専用です");
+                        };
                         let sum_data = self.to_vec_f32(&Storage::Cuda(sum_storage))?;
                         let mean_val = sum_data[0] / cuda_storage.buffer.len() as f32;
 
