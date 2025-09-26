@@ -79,6 +79,8 @@ impl CudaBackend {
                     "cosh_kernel",
                     "max_kernel",
                     "min_kernel",
+                    "max_for_clamp_grad_kernel",
+                    "min_for_clamp_grad_kernel",
                 ],
             ),
         ];
@@ -1165,6 +1167,28 @@ impl Backend for CudaBackend {
                     self.clamp_min(&cuda_storage, min)
                 }
             }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn max_for_clamp_grad(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("max_for_clamp_grad_kernel", storage)
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn min_for_clamp_grad(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("min_for_clamp_grad_kernel", storage)
         }
         #[cfg(not(feature = "cuda"))]
         Err(TensorError::BackendError(

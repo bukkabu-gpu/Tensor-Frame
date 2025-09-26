@@ -1144,6 +1144,40 @@ impl TensorOps for Tensor {
             "No backend could perform min operation".to_string(),
         ))
     }
+
+    fn max_for_clamp_grad(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.max_for_clamp_grad(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform mask_for_grad_relu operation".to_string(),
+        ))
+    }
+
+    fn min_for_clamp_grad(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.min_for_clamp_grad(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform mask_for_grad_relu operation".to_string(),
+        ))
+    }
 }
 
 impl fmt::Display for Tensor {

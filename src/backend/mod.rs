@@ -138,6 +138,10 @@ pub trait Backend: Debug + Send + Sync {
     fn clamp_max(&self, storage: &Storage, max: f32) -> Result<Storage>;
 
     fn clamp_min(&self, storage: &Storage, min: f32) -> Result<Storage>;
+
+    fn max_for_clamp_grad(&self, storage: &Storage) -> Result<Storage>;
+
+    fn min_for_clamp_grad(&self, storage: &Storage) -> Result<Storage>;
 }
 
 /// Backend-specific storage for tensor data.

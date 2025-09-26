@@ -113,4 +113,30 @@ __global__ void clamp_min_kernel(const float* input, float* output, float min, i
 }
 
 
+__global__ void max_for_clamp_grad_kernel(const float* input, float* output, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        if (input[idx]<1.0f) {
+            output[idx] = 1.0f;
+        }else {
+            output[idx] = 0.0f;
+        }
+        
+    }
+}
+
+
+__global__ void min_for_clamp_grad_kernel(const float* input, float* output, int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        if (input[idx]>1.0e-7) {
+            output[idx] = 1.0f;
+        }else {
+            output[idx] = 0.0f;
+        }
+        
+    }
+}
+
+
 } // extern "C"

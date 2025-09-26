@@ -462,4 +462,12 @@ pub trait TensorOps {
     fn clamp_min(&self, min: f32) -> Result<Self>
     where
         Self: Sized;
+
+    fn max_for_clamp_grad(&self) -> Result<Self>
+    where
+        Self: Sized;
+
+    fn min_for_clamp_grad(&self) -> Result<Self>
+    where
+        Self: Sized;
 }

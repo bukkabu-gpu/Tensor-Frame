@@ -454,4 +454,22 @@ impl Backend for CpuBackend {
             .collect();
         Ok(Storage::Cpu(result))
     }
+
+    fn max_for_clamp_grad(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data
+            .iter()
+            .map(|&x| if x > 1.0f32 { 1.0f32 } else { 0.0 })
+            .collect();
+        Ok(Storage::Cpu(result))
+    }
+
+    fn min_for_clamp_grad(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data
+            .iter()
+            .map(|&x| if x > 1.0e-15 { 1.0f32 } else { 0.0 })
+            .collect();
+        Ok(Storage::Cpu(result))
+    }
 }
