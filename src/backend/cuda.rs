@@ -441,7 +441,9 @@ impl Backend for CudaBackend {
             match axis {
                 None => {
                     // Sum all elements using CUDA kernel
-                    let Storage::Cuda(cuda_storage) = storage;
+                    let Storage::Cuda(cuda_storage) = storage else {
+                        panic!("想定外のバックエンド: この関数はCUDA専用です");
+                    };
                     {
                         let stream = self.context.default_stream();
                         let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
@@ -564,7 +566,9 @@ impl Backend for CudaBackend {
             match axis {
                 None => {
                     // Mean of all elements
-                    let Storage::Cuda(cuda_storage) = storage;
+                    let Storage::Cuda(cuda_storage) = storage else {
+                        panic!("想定外のバックエンド: この関数はCUDA専用です");
+                    };
                     {
                         let sum_result = self.sum(storage, shape, axis)?;
 
@@ -619,7 +623,9 @@ impl Backend for CudaBackend {
 
     fn transpose(&self, storage: &Storage, shape: &Shape) -> Result<Storage> {
         {
-            let Storage::Cuda(cuda_storage) = storage;
+            let Storage::Cuda(cuda_storage) = storage else {
+                panic!("想定外のバックエンド: この関数はCUDA専用です");
+            };
             {
                 let dims = shape.dims();
                 if dims.len() != 2 {
