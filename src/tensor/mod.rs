@@ -316,7 +316,7 @@ impl Tensor {
                 "CUDA" => {
                     #[cfg(feature = "cuda")]
                     if let Ok(storage) = backend.from_slice(&data, &self.shape) {
-                        println!("strage = {:?}", strage);
+                        println!("strage = {:?}", storage);
                         if matches!(storage, Storage::Cuda(_)) {
                             return Ok(Tensor {
                                 storage,
