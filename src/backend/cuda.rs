@@ -92,6 +92,7 @@ impl CudaBackend {
         for (module_name, kernel_source, kernel_names) in &kernel_files {
             // Compile kernels using nvrtc
             let ptx = cudarc::nvrtc::compile_ptx(kernel_source).map_err(|e| {
+                eprintln!("Failed to compile CUDA kernels in {}: {}", module_name, e);
                 TensorError::BackendError(format!(
                     "Failed to compile CUDA kernels in {}: {}",
                     module_name, e
@@ -100,6 +101,7 @@ impl CudaBackend {
 
             // Load the module using the correct API
             let module = context.load_module(ptx).map_err(|e| {
+                eprintln!("Failed to load PTX module {}: {}", module_name, e);
                 TensorError::BackendError(format!(
                     "Failed to load PTX module {}: {}",
                     module_name, e
@@ -108,6 +110,7 @@ impl CudaBackend {
 
             for &name in kernel_names {
                 let func = module.load_function(name).map_err(|e| {
+                    eprintln!("Failed to get kernel {} from {}: {}", name, module_name, e);
                     TensorError::BackendError(format!(
                         "Failed to get kernel {} from {}: {}",
                         name, module_name, e
