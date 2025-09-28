@@ -299,6 +299,7 @@ impl Tensor {
 
         // Find the requested backend and create tensor with it
         for backend in &BACKENDS[0..] {
+            println!("backend = {:?}", backend.clone());
             match backend_name {
                 "CPU" => {
                     #[cfg(feature = "cpu")]
