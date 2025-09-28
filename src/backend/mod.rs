@@ -158,6 +158,7 @@ pub trait Backend: Debug + Send + Sync {
 pub enum Storage {
     #[cfg(feature = "cpu")]
     Cpu(Vec<f32>),
+
     #[cfg(feature = "cuda")]
     Cuda(CudaStorage),
     #[cfg(feature = "wgpu")]
