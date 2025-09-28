@@ -19,11 +19,14 @@ impl CudaBackend {
             let context = CudaContext::new(0).map_err(|e| {
                 TensorError::BackendError(format!("Failed to initialize CUDA: {}", e))
             })?;
+            println("ainsdfi");
 
             let kernels = Self::load_kernels(&context)?;
+            println("fi");
             Ok(CudaBackend { context, kernels })
         }
         #[cfg(not(feature = "cuda"))]
+        println("ainsdfi");
         Err(TensorError::BackendError(
             "CUDA support not compiled in".to_string(),
         ))
