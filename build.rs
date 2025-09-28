@@ -3,7 +3,7 @@ use std::process::Command;
 fn main() {
     let status = Command::new("nvcc")
         .args(&[
-            "src/kernel.cu",
+            "src/kernels.cu",
             "-c",
             "-o",
             "target/kernel.o",
