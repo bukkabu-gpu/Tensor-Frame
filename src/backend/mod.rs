@@ -158,7 +158,6 @@ pub trait Backend: Debug + Send + Sync {
 pub enum Storage {
     #[cfg(feature = "cpu")]
     Cpu(Vec<f32>),
-
     #[cfg(feature = "cuda")]
     Cuda(CudaStorage),
     #[cfg(feature = "wgpu")]
@@ -197,6 +196,7 @@ pub static BACKENDS: Lazy<Vec<Arc<dyn Backend>>> = Lazy::new(|| {
     #[cfg(feature = "cuda")]
     if cuda::is_available() {
         if let Ok(backend) = cuda::CudaBackend::new() {
+            println!("cuuuuuuda");
             backends.push(Arc::new(backend) as Arc<dyn Backend>);
         }
     }
