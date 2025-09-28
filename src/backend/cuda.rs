@@ -311,7 +311,6 @@ impl Backend for CudaBackend {
                     got: vec![rhs_data.len()],
                 });
             }
-
             // Create CUDA storage from the data
             let shape = Shape::new(vec![lhs_data.len()])?;
             let lhs_storage = self.from_slice(&lhs_data, &shape)?;
