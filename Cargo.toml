@@ -23,6 +23,7 @@ tokio = { version = "1.45", features = ["rt", "rt-multi-thread"], optional = tru
 # CUDA dependencies (optional)
 cudarc = { version = "0.17.0", features = ["cuda-version-from-build-system"], optional = true }
 
+
 [features]
 default = ["cpu"]
 cpu = ["rayon"]
