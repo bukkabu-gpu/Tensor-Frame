@@ -16,6 +16,14 @@ pub struct CudaBackend {
 impl CudaBackend {
     pub fn new() -> Result<Self> {
         {
+            match CudaContext::new(0) {
+                Ok(ctx) => {
+                    println!("できた");
+                }
+                Err(e) => {
+                    println!("できない");
+                }
+            }
             let context = CudaContext::new(0).map_err(|e| {
                 TensorError::BackendError(format!("Failed to initialize CUDA: {}", e))
             })?;
