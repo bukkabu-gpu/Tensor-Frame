@@ -211,6 +211,10 @@ impl CudaBackend {
 }
 
 pub fn is_available() -> bool {
+    match CudaContext::new(0) {
+        Ok(_) => println!("CUDA context created!"),
+        Err(e) => eprintln!("Failed to create CUDA context: {:?}", e),
+    }
     {
         CudaContext::new(0).is_ok()
     }
