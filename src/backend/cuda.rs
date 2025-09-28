@@ -215,13 +215,7 @@ pub fn is_available() -> bool {
         Ok(_) => println!("CUDA context created!"),
         Err(e) => eprintln!("Failed to create CUDA context: {:?}", e),
     }
-    {
-        CudaContext::new(0).is_ok()
-    }
-    #[cfg(not(feature = "cuda"))]
-    {
-        false
-    }
+    { CudaContext::new(0).is_ok() }
 }
 
 impl Backend for CudaBackend {
