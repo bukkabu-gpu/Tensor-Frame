@@ -9,7 +9,7 @@ fn main() {
             "target/kernel.o",
             "--compiler-options",
             "-fPIC",
-            "--generate-code=arch=compute_75,code=sm_89",
+            "--generate-code=arch=compute_89,code=sm_89",
         ])
         .status()
         .expect("Failed to run nvcc");
