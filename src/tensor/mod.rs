@@ -714,6 +714,23 @@ impl TensorOps for Tensor {
         ))
     }
 
+    fn broadcast_to(&self, from_shape: Vec<usize>, to_shape: Vec<usize>) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.broadcast_to(&self.storage, from_shape.clone(), to_shape.clone()) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform broadcast_to operation".to_string(),
+        ))
+    }
+
     fn mean(&self, axis: Option<usize>) -> Result<Self> {
         // Calculate the result shape (same logic as sum)
         let result_shape = match axis {

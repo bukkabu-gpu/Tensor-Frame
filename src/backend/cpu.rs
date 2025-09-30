@@ -192,6 +192,18 @@ impl Backend for CpuBackend {
         }
     }
 
+    fn broadcast_to(
+        &self,
+        storage: &Storage,
+        from_shape: Vec<usize>,
+        to_shape: Vec<usize>,
+    ) -> Result<Storage> {
+        println!("broadcast_cpuのbackendのところだと");
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| x.powf(2.0)).collect();
+        Ok(Storage::Cpu(result))
+    }
+
     fn mean(&self, storage: &Storage, shape: &Shape, axis: Option<usize>) -> Result<Storage> {
         // Calculate sum first
         let sum_result = self.sum(storage, shape, axis)?;

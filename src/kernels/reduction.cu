@@ -51,4 +51,21 @@ __global__ void mean_kernel(const float* data, float* result, int size) {
     }
 }
 
+
+extern "C" __global__
+void broadcast_to_kernel(const float* input, float* output,
+                  int in_rows, int in_cols,
+                  int out_rows, int out_cols) {
+    int i = blockIdx.y * blockDim.y + threadIdx.y;
+    int j = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (i < out_rows && j < out_cols) {
+        int src_i = in_rows == 1 ? 0 : i;
+        int src_j = in_cols == 1 ? 0 : j;
+
+        output[i * out_cols + j] = input[src_i * in_cols + src_j];
+    }
+}
+
+
 } // extern "C"

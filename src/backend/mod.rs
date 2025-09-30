@@ -75,6 +75,13 @@ pub trait Backend: Debug + Send + Sync {
     /// Computes the sum of elements along an optional axis.
     fn sum(&self, storage: &Storage, shape: &Shape, axis: Option<usize>) -> Result<Storage>;
 
+    fn broadcast_to(
+        &self,
+        storage: &Storage,
+        from_shape: Vec<usize>,
+        to_shape: Vec<usize>,
+    ) -> Result<Storage>;
+
     /// Computes the mean of elements along an optional axis.
     fn mean(&self, storage: &Storage, shape: &Shape, axis: Option<usize>) -> Result<Storage>;
 

@@ -53,7 +53,7 @@ impl CudaBackend {
             (
                 "reduction",
                 include_str!("../kernels/reduction.cu"),
-                vec!["sum_kernel", "mean_kernel"],
+                vec!["sum_kernel", "mean_kernel", "broadcast_to_kernel"],
             ),
             (
                 "transform",
@@ -555,6 +555,73 @@ impl Backend for CudaBackend {
                     Ok(Storage::Cuda(CudaStorage {
                         buffer: std::sync::Arc::new(result_buf),
                     }))
+                }
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn broadcast_to(
+        &self,
+        storage: &Storage,
+        from_shape: &Shape,
+        to_shape: Vec<usize>,
+    ) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            match storage {
+                Storage::Cuda(cuda_storage) => {
+                    let stream = self.context.default_stream();
+                    let mut result_buf = stream
+                        .alloc_zeros::<f32>(cuda_storage.buffer.len())
+                        .map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
+
+                    let kernel = self.kernels.get("broadcast_to_kernel").ok_or_else(|| {
+                        TensorError::BackendError("broadcast_to_kernel not found".to_string())
+                    })?;
+
+                    let size = cuda_storage.buffer.len();
+                    let cfg = LaunchConfig::for_num_elems(size as u32);
+
+                    let mut builder = stream.launch_builder(kernel);
+                    let in_rows = from_shape.dims()[0];
+                    let in_cols = from_shape.dims()[1];
+                    let out_rows = to_shape.dims()[0];
+                    let out_cols = to_shape.dims()[1];
+
+                    builder.arg(cuda_storage.buffer.as_ref());
+                    builder.arg(&mut result_buf);
+                    builder.arg(&in_rows);
+                    builder.arg(&in_cols);
+                    builder.arg(&out_rows);
+                    builder.arg(&out_cols);
+
+                    unsafe { builder.launch(cfg) }.map_err(|e| {
+                        TensorError::BackendError(format!(
+                            "Failed to launch broadcast_to kernel: {}",
+                            e
+                        ))
+                    })?;
+
+                    Ok(Storage::Cuda(CudaStorage {
+                        buffer: std::sync::Arc::new(result_buf),
+                    }))
+                }
+                _ => {
+                    // Convert to CUDA and try again
+                    println!("broadcast_toのcpu");
+                    let data = self.to_vec_f32(storage)?;
+                    let shape = Shape::new(vec![data.len()])?;
+                    let cuda_storage = self.from_slice(&data, &shape)?;
+                    self.pow(&cuda_storage, power)
                 }
             }
         }

@@ -70,6 +70,12 @@ pub trait TensorOps {
     /// let mean = tensor.mean(None).unwrap();
     /// assert_eq!(mean.to_vec().unwrap(), vec![5.0]);
     /// ```
+    ///
+    ///
+    fn broadcast_to(&self, from_shape: Vec<usize>, to_shape: Vec<usize>) -> Result<Self>
+    where
+        Self: Sized;
+
     fn mean(&self, axis: Option<usize>) -> Result<Self>
     where
         Self: Sized;
