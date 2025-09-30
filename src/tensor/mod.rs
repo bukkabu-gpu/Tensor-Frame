@@ -714,9 +714,9 @@ impl TensorOps for Tensor {
         ))
     }
 
-    fn broadcast_to(&self, from_shape: Vec<usize>, to_shape: Vec<usize>) -> Result<Self> {
+    fn broadcast_to(&self, from_shape: Shape, to_shape: Shape) -> Result<Self> {
         for backend in &BACKENDS[0..] {
-            match backend.broadcast_to(&self.storage, from_shape.clone(), to_shape.clone()) {
+            match backend.broadcast_to(&self.storage, &from_shape, &to_shape) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,

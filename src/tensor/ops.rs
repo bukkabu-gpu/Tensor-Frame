@@ -4,7 +4,7 @@
 //! for various tensor operations including reductions, shape manipulations,
 //! and transformations.
 
-use crate::error::Result;
+use crate::{Shape, error::Result};
 
 /// Trait defining common operations on tensors.
 ///
@@ -72,7 +72,7 @@ pub trait TensorOps {
     /// ```
     ///
     ///
-    fn broadcast_to(&self, from_shape: Vec<usize>, to_shape: Vec<usize>) -> Result<Self>
+    fn broadcast_to(&self, from_shape: Shape, to_shape: Shape) -> Result<Self>
     where
         Self: Sized;
 

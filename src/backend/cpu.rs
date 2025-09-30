@@ -195,8 +195,8 @@ impl Backend for CpuBackend {
     fn broadcast_to(
         &self,
         storage: &Storage,
-        from_shape: Vec<usize>,
-        to_shape: Vec<usize>,
+        from_shape: &Shape,
+        to_shape: &Shape,
     ) -> Result<Storage> {
         println!("broadcast_cpuのbackendのところだと");
         let data = self.to_vec_f32(storage)?;

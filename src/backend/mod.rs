@@ -78,8 +78,8 @@ pub trait Backend: Debug + Send + Sync {
     fn broadcast_to(
         &self,
         storage: &Storage,
-        from_shape: Vec<usize>,
-        to_shape: Vec<usize>,
+        from_shape: &Shape,
+        to_shape: &Shape,
     ) -> Result<Storage>;
 
     /// Computes the mean of elements along an optional axis.

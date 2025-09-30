@@ -568,7 +568,7 @@ impl Backend for CudaBackend {
         &self,
         storage: &Storage,
         from_shape: &Shape,
-        to_shape: Vec<usize>,
+        to_shape: &Shape,
     ) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
@@ -621,7 +621,7 @@ impl Backend for CudaBackend {
                     let data = self.to_vec_f32(storage)?;
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
-                    self.pow(&cuda_storage, power)
+                    self.pow(&cuda_storage, 2.0)
                 }
             }
         }
