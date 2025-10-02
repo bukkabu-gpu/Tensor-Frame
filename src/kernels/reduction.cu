@@ -25,6 +25,35 @@ __global__ void sum_kernel(const float* data, float* result, int size) {
     }
 }
 
+__global__ void sum_axis0_kernel(const float* input, float* output,
+                  int in_rows, int in_cols) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= in_cols) return;
+
+
+    float sum = 0.0f;
+
+    for (int row = 0; row<in_rows; ++row) {
+        sum += input[row*in_cols+i];
+    }
+    output[i] = sum;
+}
+
+__global__ void sum_axis1_kernel(const float* input, float* output,
+                  int in_rows, int in_cols) {
+    int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i >= in_rows) return;
+
+
+    float sum = 0.0f;
+
+    for (int col = 0; col<in_cols; ++col) {
+        sum += input[i*in_cols+col];
+    }
+    output[i] = sum;
+}
+
+
 // Mean kernel (uses sum and divides by size)
 __global__ void mean_kernel(const float* data, float* result, int size) {
     // This is a simplified version - in practice you'd use the sum kernel
@@ -52,8 +81,8 @@ __global__ void mean_kernel(const float* data, float* result, int size) {
 }
 
 
-extern "C" __global__
-void broadcast_to_kernel(const float* input, float* output,
+
+__global__ void broadcast_to_kernel(const float* input, float* output,
                   int in_rows, int in_cols,
                   int out_rows, int out_cols) {
     int i = blockIdx.y * blockDim.y + threadIdx.y;
@@ -66,6 +95,8 @@ void broadcast_to_kernel(const float* input, float* output,
         output[i * out_cols + j] = input[src_i * in_cols + src_j];
     }
 }
+
+
 
 
 } // extern "C"
