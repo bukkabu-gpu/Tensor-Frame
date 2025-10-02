@@ -53,7 +53,13 @@ impl CudaBackend {
             (
                 "reduction",
                 include_str!("../kernels/reduction.cu"),
-                vec!["sum_kernel", "mean_kernel", "broadcast_to_kernel"],
+                vec![
+                    "sum_kernel",
+                    "sum_axis0_kernel",
+                    "sum_axis1_kernel",
+                    "mean_kernel",
+                    "broadcast_to_kernel",
+                ],
             ),
             (
                 "transform",
@@ -486,75 +492,61 @@ impl Backend for CudaBackend {
                         }))
                     }
                 }
+
                 Some(axis_idx) => {
-                    // Sum along specific axis
-                    let dims = shape.dims();
-                    if axis_idx >= dims.len() {
-                        return Err(TensorError::InvalidShape(format!(
-                            "Axis {} is out of bounds for tensor with {} dimensions",
-                            axis_idx,
-                            dims.len()
-                        )));
-                    }
-
-                    // Calculate result shape (remove the summed axis)
-                    let mut result_shape = dims.to_vec();
-                    result_shape.remove(axis_idx);
-                    let result_size = if result_shape.is_empty() {
-                        1
-                    } else {
-                        result_shape.iter().product()
+                    // Sum all elements using CUDA kernel
+                    let Storage::Cuda(cuda_storage) = storage else {
+                        panic!("想定外のバックエンド: この関数はCUDA専用です");
                     };
+                    {
+                        let stream = self.context.default_stream();
+                        let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
 
-                    // Convert CUDA storage to CPU, perform operation, then convert back
-                    let data = self.to_vec_f32(storage)?;
+                        let kernel;
 
-                    // Calculate strides for the original tensor
-                    let mut strides = vec![1; dims.len()];
-                    for i in (0..dims.len() - 1).rev() {
-                        strides[i] = strides[i + 1] * dims[i + 1];
-                    }
-
-                    let mut result = vec![0.0; result_size];
-
-                    // Iterate through all elements and accumulate along the specified axis
-                    for (linear_idx, &value) in data.iter().enumerate() {
-                        // Convert linear index to multi-dimensional coordinates
-                        let mut coords = vec![0; dims.len()];
-                        let mut temp_idx = linear_idx;
-                        for (i, &stride) in strides.iter().enumerate() {
-                            coords[i] = temp_idx / stride;
-                            temp_idx %= stride;
+                        if axis_idx == 0 {
+                            kernel = self.kernels.get("sum_axis0_kernel").ok_or_else(|| {
+                                TensorError::BackendError("sum_axis0_kernel not found".to_string())
+                            })?;
+                        } else if axis_idx == 1 {
+                            kernel = self.kernels.get("sum_axis1_kernel").ok_or_else(|| {
+                                TensorError::BackendError("sum_axis1_kernel not found".to_string())
+                            })?;
+                        } else {
+                            panic!("axisは0か1のみ指定できます。");
                         }
 
-                        // Calculate result index by removing the summed axis coordinate
-                        let mut result_coords = coords.clone();
-                        result_coords.remove(axis_idx);
+                        let size = cuda_storage.buffer.len();
+                        let block_size = 256;
+                        let grid_size = (size + block_size - 1) / block_size;
 
-                        // Convert result coordinates to linear index
-                        let mut result_idx = 0;
-                        if !result_coords.is_empty() {
-                            let mut result_strides = vec![1; result_coords.len()];
-                            for i in (0..result_coords.len() - 1).rev() {
-                                result_strides[i] = result_strides[i + 1] * result_shape[i + 1];
-                            }
-                            for (i, &coord) in result_coords.iter().enumerate() {
-                                result_idx += coord * result_strides[i];
-                            }
-                        }
+                        let cfg = LaunchConfig {
+                            grid_dim: (grid_size as u32, 1, 1),
+                            block_dim: (block_size as u32, 1, 1),
+                            shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
+                        };
 
-                        result[result_idx] += value;
+                        let mut builder = stream.launch_builder(kernel);
+                        builder.arg(cuda_storage.buffer.as_ref());
+                        builder.arg(&mut result_buf);
+                        let in_rows = shape.dims()[0];
+                        let in_cols = shape.dims()[1];
+                        builder.arg(&in_rows);
+                        builder.arg(&in_cols);
+
+                        unsafe { builder.launch(cfg) }.map_err(|e| {
+                            TensorError::BackendError(format!("Failed to launch sum kernel: {}", e))
+                        })?;
+
+                        Ok(Storage::Cuda(CudaStorage {
+                            buffer: std::sync::Arc::new(result_buf),
+                        }))
                     }
-
-                    // Convert result back to CUDA storage
-                    let stream = self.context.default_stream();
-                    let result_buf = stream.memcpy_stod(&result).map_err(|e| {
-                        TensorError::BackendError(format!("Failed to copy result to CUDA: {}", e))
-                    })?;
-
-                    Ok(Storage::Cuda(CudaStorage {
-                        buffer: std::sync::Arc::new(result_buf),
-                    }))
                 }
             }
         }
