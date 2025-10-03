@@ -28,7 +28,7 @@ __global__ void sum_kernel(const float* data, float* result, int size) {
 __global__ void sum_axis0_kernel(const float* input, float* output,
                   int in_rows, int in_cols) {
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= in_cols) return;
+ 
 
 
     float sum = 0.0f;
