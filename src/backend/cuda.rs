@@ -450,6 +450,7 @@ impl Backend for CudaBackend {
         {
             match axis {
                 None => {
+                    println!("ここはNone");
                     // Sum all elements using CUDA kernel
                     let Storage::Cuda(cuda_storage) = storage else {
                         panic!("想定外のバックエンド: この関数はCUDA専用です");
@@ -494,6 +495,7 @@ impl Backend for CudaBackend {
                 }
 
                 Some(axis_idx) => {
+                    println!("ここはSome(axis)");
                     // Sum all elements using CUDA kernel
                     let Storage::Cuda(cuda_storage) = storage else {
                         panic!("想定外のバックエンド: この関数はCUDA専用です");
@@ -510,10 +512,12 @@ impl Backend for CudaBackend {
                         let kernel;
 
                         if axis_idx == 0 {
+                            println!("ここはaxis=0");
                             kernel = self.kernels.get("sum_axis0_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis0_kernel not found".to_string())
                             })?;
                         } else if axis_idx == 1 {
+                            println!("ここはaxis1");
                             kernel = self.kernels.get("sum_axis1_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis1_kernel not found".to_string())
                             })?;
