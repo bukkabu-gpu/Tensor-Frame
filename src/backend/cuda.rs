@@ -526,14 +526,7 @@ impl Backend for CudaBackend {
                         }
 
                         let size = cuda_storage.buffer.len();
-                        let block_size = 256;
-                        let grid_size = (size + block_size - 1) / block_size;
-
-                        let cfg = LaunchConfig {
-                            grid_dim: (grid_size as u32, 1, 1),
-                            block_dim: (block_size as u32, 1, 1),
-                            shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
-                        };
+                        let cfg = LaunchConfig::for_num_elems(size as u32);
 
                         let mut builder = stream.launch_builder(kernel);
                         builder.arg(cuda_storage.buffer.as_ref());
