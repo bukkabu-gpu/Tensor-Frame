@@ -533,6 +533,9 @@ impl Backend for CudaBackend {
                         builder.arg(&mut result_buf);
                         let in_rows = shape.dims()[0];
                         let in_cols = shape.dims()[1];
+                        println!("in_rows = {:?}", in_rows);
+                        println!("in_cols = {:?}", in_cols);
+
                         builder.arg(&in_rows);
                         builder.arg(&in_cols);
 
