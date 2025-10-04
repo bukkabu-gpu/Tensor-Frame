@@ -525,14 +525,22 @@ impl Backend for CudaBackend {
                             panic!("axisは0か1のみ指定できます。");
                         }
 
-                        let size = cuda_storage.buffer.len();
-                        let cfg = LaunchConfig::for_num_elems(size as u32);
+                        let block_dim_x = 16;
+                        let block_dim_y = 16;
+                        let grid_dim_x = (cols + block_dim_x - 1) / block_dim_x;
+                        let grid_dim_y = (rows + block_dim_y - 1) / block_dim_y;
+
+                        let cfg = LaunchConfig {
+                            grid_dim: (grid_dim_x as u32, grid_dim_y as u32, 1),
+                            block_dim: (block_dim_x as u32, block_dim_y as u32, 1),
+                            shared_mem_bytes: 0,
+                        };
 
                         let mut builder = stream.launch_builder(kernel);
                         builder.arg(cuda_storage.buffer.as_ref());
                         builder.arg(&mut result_buf);
-                        let in_rows = shape.dims()[0];
-                        let in_cols = shape.dims()[1];
+                        let in_rows = shape.dims()[0] as i32;
+                        let in_cols = shape.dims()[1] as i32;
                         println!("in_rows = {:?}", in_rows);
                         println!("in_cols = {:?}", in_cols);
 
