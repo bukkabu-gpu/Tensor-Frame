@@ -525,6 +525,9 @@ impl Backend for CudaBackend {
                             panic!("axisは0か1のみ指定できます。");
                         }
 
+                        let rows = shape.dims()[0];
+                        let cols = shape.dims()[1];
+
                         let block_dim_x = 16;
                         let block_dim_y = 16;
                         let grid_dim_x = (cols + block_dim_x - 1) / block_dim_x;
@@ -539,8 +542,8 @@ impl Backend for CudaBackend {
                         let mut builder = stream.launch_builder(kernel);
                         builder.arg(cuda_storage.buffer.as_ref());
                         builder.arg(&mut result_buf);
-                        let in_rows = shape.dims()[0] as i32;
-                        let in_cols = shape.dims()[1] as i32;
+                        let in_rows = rows as i32;
+                        let in_cols = cols as i32;
                         println!("in_rows = {:?}", in_rows);
                         println!("in_cols = {:?}", in_cols);
 
