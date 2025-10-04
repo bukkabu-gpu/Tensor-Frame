@@ -553,6 +553,7 @@ impl Backend for CudaBackend {
                         unsafe { builder.launch(cfg) }.map_err(|e| {
                             TensorError::BackendError(format!("Failed to launch sum kernel: {}", e))
                         })?;
+                        println!("result_buf = {:?}", result_buf);
 
                         Ok(Storage::Cuda(CudaStorage {
                             buffer: std::sync::Arc::new(result_buf),
