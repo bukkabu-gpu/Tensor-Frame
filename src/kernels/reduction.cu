@@ -29,14 +29,16 @@ __global__ void sum_axis0_kernel(const float* input, float* output,
                   int in_rows, int in_cols) {
     
     int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i >= in_cols) return;
+    
+    if (i < in_cols) {                
+        float sum = 0.0f;
 
-    float sum = 0.0f;
+        for (int row = 0; row<in_rows; ++row) {
+            sum += input[row*in_cols+i];
+        }
+        output[i] = sum;
 
-    for (int row = 0; row<in_rows; ++row) {
-        sum += input[row*in_cols+i];
     }
-    output[i] = sum;
 }
 
 __global__ void sum_axis1_kernel(const float* input, float* output,
