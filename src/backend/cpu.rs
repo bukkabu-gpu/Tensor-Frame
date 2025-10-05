@@ -198,7 +198,6 @@ impl Backend for CpuBackend {
         from_shape: &Shape,
         to_shape: &Shape,
     ) -> Result<Storage> {
-        println!("broadcast_cpuのbackendのところだと");
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data.iter().map(|&x| x.powf(2.0)).collect();
         Ok(Storage::Cpu(result))
