@@ -501,36 +501,51 @@ impl Backend for CudaBackend {
                         panic!("想定外のバックエンド: この関数はCUDA専用です");
                     };
                     {
+                        let rows = shape.dims()[0];
+                        let cols = shape.dims()[1];
+
                         let stream = self.context.default_stream();
-                        let mut result_buf = stream.alloc_zeros::<f32>(1).map_err(|e| {
-                            TensorError::BackendError(format!(
-                                "Failed to allocate CUDA result buffer: {}",
-                                e
-                            ))
-                        })?;
+
+                        let mut result_buf;
 
                         let kernel;
+                        let grid_size;
 
                         if axis_idx == 0 {
                             println!("ここはaxis=0");
+                            result_buf = result_buf =
+                                stream.alloc_zeros::<f32>(cols).map_err(|e| {
+                                    TensorError::BackendError(format!(
+                                        "Failed to allocate CUDA result buffer: {}",
+                                        e
+                                    ))
+                                })?;
+
                             kernel = self.kernels.get("sum_axis0_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis0_kernel not found".to_string())
                             })?;
+                            grid_size = cols;
                         } else if axis_idx == 1 {
                             println!("ここはaxis1");
+
+                            result_buf = result_buf =
+                                stream.alloc_zeros::<f32>(rows).map_err(|e| {
+                                    TensorError::BackendError(format!(
+                                        "Failed to allocate CUDA result buffer: {}",
+                                        e
+                                    ))
+                                })?;
                             kernel = self.kernels.get("sum_axis1_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis1_kernel not found".to_string())
                             })?;
+
+                            grid_size = rows;
                         } else {
                             panic!("axisは0か1のみ指定できます。");
                         }
 
-                        let rows = shape.dims()[0];
-                        let cols = shape.dims()[1];
-
                         let size = cuda_storage.buffer.len();
                         let block_size = 256;
-                        let grid_size = (size + block_size - 1) / block_size;
 
                         let cfg = LaunchConfig {
                             grid_dim: (grid_size as u32, 1, 1),
