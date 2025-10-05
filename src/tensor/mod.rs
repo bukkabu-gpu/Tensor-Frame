@@ -720,7 +720,7 @@ impl TensorOps for Tensor {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,
-                        shape: self.shape.clone(),
+                        shape: to_shape,
                     });
                 }
                 Err(_) => continue,
