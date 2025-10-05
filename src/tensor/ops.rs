@@ -72,7 +72,7 @@ pub trait TensorOps {
     /// ```
     ///
     ///
-    fn broadcast_to(&self, from_shape: Shape, to_shape: Shape) -> Result<Self>
+    fn broadcast_to(&self, to_shape: Shape) -> Result<Self>
     where
         Self: Sized;
 
