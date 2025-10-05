@@ -19,11 +19,8 @@ impl CudaBackend {
             let context = CudaContext::new(0).map_err(|e| {
                 TensorError::BackendError(format!("Failed to initialize CUDA: {}", e))
             })?;
-            println!("context = {:?}", context.clone());
 
             let kernels = Self::load_kernels(&context)?;
-
-            println!("kernels = {:?}", kernels.clone());
 
             Ok(CudaBackend { context, kernels })
         }
@@ -450,7 +447,6 @@ impl Backend for CudaBackend {
         {
             match axis {
                 None => {
-                    println!("ここはNone");
                     // Sum all elements using CUDA kernel
                     let Storage::Cuda(cuda_storage) = storage else {
                         panic!("想定外のバックエンド: この関数はCUDA専用です");
@@ -495,7 +491,6 @@ impl Backend for CudaBackend {
                 }
 
                 Some(axis_idx) => {
-                    println!("ここはSome(axis)");
                     // Sum all elements using CUDA kernel
                     let Storage::Cuda(cuda_storage) = storage else {
                         panic!("想定外のバックエンド: この関数はCUDA専用です");
@@ -512,7 +507,6 @@ impl Backend for CudaBackend {
                         let grid_size;
 
                         if axis_idx == 0 {
-                            println!("ここはaxis=0");
                             result_buf = stream.alloc_zeros::<f32>(cols).map_err(|e| {
                                 TensorError::BackendError(format!(
                                     "Failed to allocate CUDA result buffer: {}",
@@ -525,8 +519,6 @@ impl Backend for CudaBackend {
                             })?;
                             grid_size = cols;
                         } else if axis_idx == 1 {
-                            println!("ここはaxis1");
-
                             result_buf = stream.alloc_zeros::<f32>(rows).map_err(|e| {
                                 TensorError::BackendError(format!(
                                     "Failed to allocate CUDA result buffer: {}",
@@ -556,8 +548,6 @@ impl Backend for CudaBackend {
                         builder.arg(&mut result_buf);
                         let in_rows = rows as i32;
                         let in_cols = cols as i32;
-                        println!("in_rows = {:?}", in_rows);
-                        println!("in_cols = {:?}", in_cols);
 
                         builder.arg(&in_rows);
                         builder.arg(&in_cols);
@@ -565,7 +555,6 @@ impl Backend for CudaBackend {
                         unsafe { builder.launch(cfg) }.map_err(|e| {
                             TensorError::BackendError(format!("Failed to launch sum kernel: {}", e))
                         })?;
-                        println!("result_buf = {:?}", result_buf);
 
                         Ok(Storage::Cuda(CudaStorage {
                             buffer: std::sync::Arc::new(result_buf),
@@ -633,7 +622,7 @@ impl Backend for CudaBackend {
                 }
                 _ => {
                     // Convert to CUDA and try again
-                    println!("broadcast_toのcpu");
+
                     let data = self.to_vec_f32(storage)?;
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
