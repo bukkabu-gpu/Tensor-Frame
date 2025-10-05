@@ -32,9 +32,11 @@ __global__ void sum_axis0_kernel(const float* input, float* output,
     
     if (i < in_cols) {                
         float sum = 0.0f;
+        
 
         for (int row = 0; row<in_rows; ++row) {
             sum += input[row*in_cols+i];
+            printf("i = %d,input[row*in_cols+1] = %f\n",i,input[row*in_cols+i]);
         }
         output[i] = sum;
 
