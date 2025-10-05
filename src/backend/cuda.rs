@@ -513,13 +513,12 @@ impl Backend for CudaBackend {
 
                         if axis_idx == 0 {
                             println!("ここはaxis=0");
-                            result_buf = result_buf =
-                                stream.alloc_zeros::<f32>(cols).map_err(|e| {
-                                    TensorError::BackendError(format!(
-                                        "Failed to allocate CUDA result buffer: {}",
-                                        e
-                                    ))
-                                })?;
+                            result_buf = stream.alloc_zeros::<f32>(cols).map_err(|e| {
+                                TensorError::BackendError(format!(
+                                    "Failed to allocate CUDA result buffer: {}",
+                                    e
+                                ))
+                            })?;
 
                             kernel = self.kernels.get("sum_axis0_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis0_kernel not found".to_string())
@@ -528,13 +527,12 @@ impl Backend for CudaBackend {
                         } else if axis_idx == 1 {
                             println!("ここはaxis1");
 
-                            result_buf = result_buf =
-                                stream.alloc_zeros::<f32>(rows).map_err(|e| {
-                                    TensorError::BackendError(format!(
-                                        "Failed to allocate CUDA result buffer: {}",
-                                        e
-                                    ))
-                                })?;
+                            result_buf = stream.alloc_zeros::<f32>(rows).map_err(|e| {
+                                TensorError::BackendError(format!(
+                                    "Failed to allocate CUDA result buffer: {}",
+                                    e
+                                ))
+                            })?;
                             kernel = self.kernels.get("sum_axis1_kernel").ok_or_else(|| {
                                 TensorError::BackendError("sum_axis1_kernel not found".to_string())
                             })?;
