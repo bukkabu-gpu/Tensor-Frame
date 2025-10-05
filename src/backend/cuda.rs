@@ -528,15 +528,14 @@ impl Backend for CudaBackend {
                         let rows = shape.dims()[0];
                         let cols = shape.dims()[1];
 
-                        let block_dim_x = 16;
-                        let block_dim_y = 16;
-                        let grid_dim_x = (cols + block_dim_x - 1) / block_dim_x;
-                        let grid_dim_y = (rows + block_dim_y - 1) / block_dim_y;
+                        let size = cuda_storage.buffer.len();
+                        let block_size = 256;
+                        let grid_size = (size + block_size - 1) / block_size;
 
                         let cfg = LaunchConfig {
-                            grid_dim: (grid_dim_x as u32, grid_dim_y as u32, 1),
-                            block_dim: (block_dim_x as u32, block_dim_y as u32, 1),
-                            shared_mem_bytes: 0,
+                            grid_dim: (grid_size as u32, 1, 1),
+                            block_dim: (block_size as u32, 1, 1),
+                            shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
                         };
 
                         let mut builder = stream.launch_builder(kernel);
