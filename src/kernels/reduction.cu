@@ -27,20 +27,37 @@ __global__ void sum_kernel(const float* data, float* result, int size) {
 
 __global__ void sum_axis0_kernel(const float* input, float* output,
                   int in_rows, int in_cols) {
-    
-    int i = blockIdx.x * blockDim.x + threadIdx.x;
-    
-    if (i < in_cols) {                
-        float sum = 0.0f;
-        
+    extern __shared__ float sdata[];
 
-        for (int row = 0; row<in_rows; ++row) {
-            sum += input[row*in_cols+i];
-            printf("i = %d,input[row*in_cols+1] = %f\n",i,input[row*in_cols+i]);
-        }
-        output[i] = sum;
+    int col_idx = blockIdx.x;
+    int tid = threadIdx.x;
 
+    if (col_idx >= in_cols) {
+        return;
     }
+
+    float row_sum = 0.0f;
+
+    for (int row = tid; row<in_rows;row += blockDim.x) {
+        row_sum += input[row*in_cols+col_idx];
+    }
+    sdata[tid] = row_sum;
+
+    __syncthreads();
+
+    for (unsigned int s = blockDim.x/2;s>0;s>>=1) {
+        if (tid < s) {
+            sdata[tid] += sdata[tid +s];
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        output[col_idx] = sdata[0];
+    }
+
+
+    
 }
 
 __global__ void sum_axis1_kernel(const float* input, float* output,
