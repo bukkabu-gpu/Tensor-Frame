@@ -579,15 +579,19 @@ impl Backend for CudaBackend {
         {
             match storage {
                 Storage::Cuda(cuda_storage) => {
+                    let out_rows = to_shape.dims()[0];
+                    let out_cols = to_shape.dims()[1];
+
                     let stream = self.context.default_stream();
-                    let mut result_buf = stream
-                        .alloc_zeros::<f32>(cuda_storage.buffer.len())
-                        .map_err(|e| {
-                            TensorError::BackendError(format!(
-                                "Failed to allocate CUDA result buffer: {}",
-                                e
-                            ))
-                        })?;
+                    let mut result_buf =
+                        stream
+                            .alloc_zeros::<f32>(out_rows * out_cols)
+                            .map_err(|e| {
+                                TensorError::BackendError(format!(
+                                    "Failed to allocate CUDA result buffer: {}",
+                                    e
+                                ))
+                            })?;
 
                     let kernel = self.kernels.get("broadcast_to_kernel").ok_or_else(|| {
                         TensorError::BackendError("broadcast_to_kernel not found".to_string())
@@ -599,8 +603,6 @@ impl Backend for CudaBackend {
                     let mut builder = stream.launch_builder(kernel);
                     let in_rows = from_shape.dims()[0];
                     let in_cols = from_shape.dims()[1];
-                    let out_rows = to_shape.dims()[0];
-                    let out_cols = to_shape.dims()[1];
 
                     builder.arg(cuda_storage.buffer.as_ref());
                     builder.arg(&mut result_buf);
