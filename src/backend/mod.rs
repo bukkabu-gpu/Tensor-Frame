@@ -109,6 +109,8 @@ pub trait Backend: Debug + Send + Sync {
         rhs_shape: &Shape,
     ) -> Result<Storage>;
 
+    fn neg(&self, storage: &Storage) -> Result<Storage>;
+
     /// Element-wise exponential function.
     fn exp(&self, storage: &Storage) -> Result<Storage>;
 

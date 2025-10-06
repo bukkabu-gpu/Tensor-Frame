@@ -255,6 +255,9 @@ pub trait TensorOps {
     where
         Self: Sized;
 
+    fn neg(&self) -> Result<Self>
+    where
+        Self: Sized;
     /// Element-wise exponential function.
     ///
     /// Applies the exponential function (e^x) to each element.

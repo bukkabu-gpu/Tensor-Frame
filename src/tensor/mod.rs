@@ -926,6 +926,23 @@ impl TensorOps for Tensor {
         ))
     }
 
+    fn neg(&self) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.neg(&self.storage) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform neg operation".to_string(),
+        ))
+    }
+
     fn exp(&self) -> Result<Self> {
         for backend in &BACKENDS[0..] {
             match backend.exp(&self.storage) {

@@ -72,6 +72,7 @@ impl CudaBackend {
                 "math",
                 include_str!("../kernels/math.cu"),
                 vec![
+                    "neg_kernel",
                     "exp_kernel",
                     "log_kernel",
                     "sqrt_kernel",
@@ -998,6 +999,17 @@ impl Backend for CudaBackend {
                     "Invalid storage types for CUDA bmm".to_string(),
                 )),
             }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn neg(&self, storage: &Storage) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            self.launch_unary_math_kernel("neg_kernel", storage)
         }
         #[cfg(not(feature = "cuda"))]
         Err(TensorError::BackendError(

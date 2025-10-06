@@ -373,6 +373,12 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
     }
 
+    fn neg(&self, storage: &Storage) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| -x).collect();
+        Ok(Storage::Cpu(result))
+    }
+
     fn exp(&self, storage: &Storage) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data.iter().map(|&x| x.exp()).collect();
