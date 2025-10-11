@@ -776,7 +776,7 @@ impl Backend for CudaBackend {
         ))
     }
 
-    fn rows_slice(&self, storage: &Storage, indices: Vec<usize>) -> Result<Storage> {
+    fn rows_slice(&self, storage: &Storage, indices: &[usize]) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             match storage {
