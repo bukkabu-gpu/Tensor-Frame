@@ -76,6 +76,10 @@ pub trait TensorOps {
     where
         Self: Sized;
 
+    fn rows_slice(&self, indices: Vec<usize>) -> Result<Self>
+    where
+        Self: Sized;
+
     fn mean(&self, axis: Option<usize>) -> Result<Self>
     where
         Self: Sized;

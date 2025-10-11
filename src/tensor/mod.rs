@@ -731,6 +731,24 @@ impl TensorOps for Tensor {
         ))
     }
 
+    fn rows_slice(&self, indices: Vec<usize>) -> Result<Self> {
+        let result_shape = Shape::new(vec![self.shape.dims()[0], indices.len()]).unwrap();
+        for backend in &BACKENDS[0..] {
+            match backend.rows_slice(&self.storage, &indices) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: result_shape,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform broadcast_to operation".to_string(),
+        ))
+    }
+
     fn mean(&self, axis: Option<usize>) -> Result<Self> {
         // Calculate the result shape (same logic as sum)
         let result_shape = match axis {

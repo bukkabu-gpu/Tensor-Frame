@@ -56,6 +56,7 @@ impl CudaBackend {
                     "sum_axis1_kernel",
                     "mean_kernel",
                     "broadcast_to_kernel",
+                    "rows_slice_kernel",
                 ],
             ),
             (
@@ -767,6 +768,77 @@ impl Backend for CudaBackend {
                 Ok(Storage::Cuda(CudaStorage {
                     buffer: std::sync::Arc::new(result_buf),
                 }))
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    fn rows_slice(&self, storage: &Storage, indices: Vec<usize>) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            match storage {
+                Storage::Cuda(cuda_storage) => {
+                    let num_indices = indices.len();
+                    let in_cols = to_shape.dims()[1];
+
+                    let stream = self.context.default_stream();
+                    let mut result_buf =
+                        stream
+                            .alloc_zeros::<f32>(num_indices * in_cols)
+                            .map_err(|e| {
+                                TensorError::BackendError(format!(
+                                    "Failed to allocate CUDA result buffer: {}",
+                                    e
+                                ))
+                            })?;
+
+                    let kernel = self.kernels.get("rows_slice_kernel").ok_or_else(|| {
+                        TensorError::BackendError("rows_slice_kernel not found".to_string())
+                    })?;
+
+                    let size = cuda_storage.buffer.len();
+                    let block_x = 16;
+                    let block_y = 16;
+
+                    let grid_x = (out_cols + block_x - 1) / block_x;
+                    let grid_y = (out_rows + block_y - 1) / block_y;
+
+                    let cfg = LaunchConfig {
+                        grid_dim: (grid_x as u32, grid_y as u32, 1),
+                        block_dim: (block_x as u32, block_y as u32, 1),
+                        shared_mem_bytes: 0,
+                    };
+
+                    let mut builder = stream.launch_builder(kernel);
+
+                    builder.arg(cuda_storage.buffer.as_ref());
+                    builder.arg(&mut result_buf);
+                    builder.arg(&indices);
+                    builder.arg(&num_indices);
+                    builder.arg(&in_cols);
+
+                    unsafe { builder.launch(cfg) }.map_err(|e| {
+                        TensorError::BackendError(format!(
+                            "Failed to launch rows_slice kernel: {}",
+                            e
+                        ))
+                    })?;
+
+                    Ok(Storage::Cuda(CudaStorage {
+                        buffer: std::sync::Arc::new(result_buf),
+                    }))
+                }
+                _ => {
+                    // Convert to CUDA and try again
+
+                    let data = self.to_vec_f32(storage)?;
+                    let shape = Shape::new(vec![data.len()])?;
+                    let cuda_storage = self.from_slice(&data, &shape)?;
+                    self.pow(&cuda_storage, 2.0)
+                }
             }
         }
         #[cfg(not(feature = "cuda"))]

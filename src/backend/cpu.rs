@@ -233,6 +233,12 @@ impl Backend for CpuBackend {
         }
     }
 
+    fn rows_slice(&self, storage: &Storage, indices: &Vec<usize>) -> Result<Storage> {
+        println!("cpuでのrow-sliceは未実装");
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| x.ln()).collect();
+        Ok(Storage::Cpu(result))
+    }
     fn transpose(&self, storage: &Storage, shape: &Shape) -> Result<Storage> {
         let dims = shape.dims();
         if dims.len() != 2 {
