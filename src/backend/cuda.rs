@@ -784,11 +784,6 @@ impl Backend for CudaBackend {
                     let num_indices = indices.len();
                     let in_cols = shape.dims()[1];
 
-                    println!(
-                        "num_indices = {},in_cols = {}, indices = {:?}",
-                        num_indices, in_cols, indices
-                    );
-
                     let stream = self.context.default_stream();
                     let mut result_buf =
                         stream
