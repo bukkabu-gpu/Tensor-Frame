@@ -124,7 +124,7 @@ __global__ void rows_slice_kernel(const float* input, float* output,
     int row_idx = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (i < num_indices && col < cols) {
+    if (row_idx < num_indices && col < cols) {
         int src_row = indices[row_idx];
         int src_idx = src_row*cols+col;
         int dst_idx = row_idx*cols+col;
