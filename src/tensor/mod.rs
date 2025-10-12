@@ -731,7 +731,7 @@ impl TensorOps for Tensor {
         ))
     }
 
-    fn rows_slice(&self, indices: &[usize]) -> Result<Self> {
+    fn rows_slice(&self, indices: &[u32]) -> Result<Self> {
         let result_shape = Shape::new(vec![indices.len(), self.shape.dims()[1]]).unwrap();
         for backend in &BACKENDS[0..] {
             match backend.rows_slice(&self.storage, &self.shape, &indices) {
