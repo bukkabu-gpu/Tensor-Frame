@@ -76,7 +76,7 @@ pub trait TensorOps {
     where
         Self: Sized;
 
-    fn rows_slice(&self, indices: &[u32]) -> Result<Self>
+    fn rows_slice(&self, indices: &[usize]) -> Result<Self>
     where
         Self: Sized;
 
