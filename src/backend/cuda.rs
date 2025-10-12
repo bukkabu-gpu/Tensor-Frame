@@ -800,16 +800,13 @@ impl Backend for CudaBackend {
                     })?;
 
                     let size = cuda_storage.buffer.len();
-                    let block_x = 16;
-                    let block_y = 16;
-
-                    let grid_x = (out_cols + block_x - 1) / block_x;
-                    let grid_y = (out_rows + block_y - 1) / block_y;
+                    let block_size = 256;
+                    let grid_size = (size + block_size - 1) / block_size;
 
                     let cfg = LaunchConfig {
-                        grid_dim: (grid_x as u32, grid_y as u32, 1),
-                        block_dim: (block_x as u32, block_y as u32, 1),
-                        shared_mem_bytes: 0,
+                        grid_dim: (grid_size as u32, 1, 1),
+                        block_dim: (block_size as u32, 1, 1),
+                        shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
                     };
 
                     let mut builder = stream.launch_builder(kernel);
