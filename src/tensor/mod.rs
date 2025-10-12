@@ -734,7 +734,7 @@ impl TensorOps for Tensor {
     fn rows_slice(&self, indices: &[usize]) -> Result<Self> {
         let result_shape = Shape::new(vec![self.shape.dims()[0], indices.len()]).unwrap();
         for backend in &BACKENDS[0..] {
-            match backend.rows_slice(&self.storage, &indices) {
+            match backend.rows_slice(&self.storage, &self.shape, &indices) {
                 Ok(storage) => {
                     return Ok(Tensor {
                         storage,

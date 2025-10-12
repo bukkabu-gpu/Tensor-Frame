@@ -82,7 +82,7 @@ pub trait Backend: Debug + Send + Sync {
         to_shape: &Shape,
     ) -> Result<Storage>;
 
-    fn rows_slice(&self, storage: &Storage, indices: &[usize]) -> Result<Storage>;
+    fn rows_slice(&self, storage: &Storage, shape: &Shape, indices: &[usize]) -> Result<Storage>;
 
     /// Computes the mean of elements along an optional axis.
     fn mean(&self, storage: &Storage, shape: &Shape, axis: Option<usize>) -> Result<Storage>;

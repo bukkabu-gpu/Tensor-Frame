@@ -776,13 +776,13 @@ impl Backend for CudaBackend {
         ))
     }
 
-    fn rows_slice(&self, storage: &Storage, indices: &[usize]) -> Result<Storage> {
+    fn rows_slice(&self, storage: &Storage, shape: &Shape, indices: &[usize]) -> Result<Storage> {
         #[cfg(feature = "cuda")]
         {
             match storage {
                 Storage::Cuda(cuda_storage) => {
                     let num_indices = indices.len();
-                    let in_cols = to_shape.dims()[1];
+                    let in_cols = shape.dims()[1];
 
                     let stream = self.context.default_stream();
                     let mut result_buf =
