@@ -552,6 +552,22 @@ mod tests {
         let result_2 = sum_axis_2.to_vec().unwrap();
         assert_eq!(result_2, vec![3.0, 7.0, 11.0, 15.0]); // [1+2, 3+4, 5+6, 7+8]
     }
+
+    #[test]
+    fn rows_slice_test() {
+        use crate::tensor::ops::TensorOps;
+
+        // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
+        let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2])
+            .unwrap()
+            .to_backend("CUDA")
+            .expect("cudaだめ");
+
+        // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
+        let tensor_rows_slice = tensor.rows_slice(&[0, 2]).unwrap();
+        let result_0 = tensor_rows_slice.to_vec().unwrap();
+        assert_eq!(result_0, vec![1.0, 2.0, 5.0, 6.0]);
+    }
 }
 
 // ==== WGPU-SPECIFIC TESTS ====

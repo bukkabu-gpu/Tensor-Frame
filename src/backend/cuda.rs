@@ -227,7 +227,7 @@ pub fn is_available() -> bool {
         Ok(_) => println!("CUDA context created!"),
         Err(e) => eprintln!("Failed to create CUDA context: {:?}", e),
     }
-    { CudaContext::new(0).is_ok() }
+    CudaContext::new(0).is_ok()
 }
 
 impl Backend for CudaBackend {
@@ -807,13 +807,16 @@ impl Backend for CudaBackend {
                     let indices_gpu = stream.memcpy_stod(indices).unwrap();
 
                     let size = cuda_storage.buffer.len();
-                    let block_size = 256;
-                    let grid_size = (size + block_size - 1) / block_size;
+                    let block_x = 16;
+                    let block_y = 16;
+
+                    let grid_x = (in_cols + block_x - 1) / block_x;
+                    let grid_y = (num_indices + block_y - 1) / block_y;
 
                     let cfg = LaunchConfig {
-                        grid_dim: (grid_size as u32, 1, 1),
-                        block_dim: (block_size as u32, 1, 1),
-                        shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
+                        grid_dim: (grid_x as u32, grid_y as u32, 1),
+                        block_dim: (block_x as u32, block_y as u32, 1),
+                        shared_mem_bytes: 0,
                     };
 
                     let mut builder = stream.launch_builder(kernel);
@@ -821,8 +824,8 @@ impl Backend for CudaBackend {
                     builder.arg(cuda_storage.buffer.as_ref());
                     builder.arg(&mut result_buf);
                     builder.arg(&indices_gpu);
-                    builder.arg(&num_indices as i32);
-                    builder.arg(&in_cols as i32);
+                    builder.arg(&num_indices);
+                    builder.arg(&in_cols);
 
                     unsafe { builder.launch(cfg) }.map_err(|e| {
                         TensorError::BackendError(format!(

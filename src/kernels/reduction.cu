@@ -118,7 +118,7 @@ __global__ void broadcast_to_kernel(const float* input, float* output,
 }
 
 __global__ void rows_slice_kernel(const float* input, float* output,
-                  const int* indices, int num_indices,int cols) {
+                  int* indices, int num_indices,int cols) {
 
     
     int row_idx = blockIdx.y * blockDim.y + threadIdx.y;
