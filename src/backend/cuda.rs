@@ -804,7 +804,7 @@ impl Backend for CudaBackend {
                         TensorError::BackendError("rows_slice_kernel not found".to_string())
                     })?;
 
-                    let indices_gpu = stream.memcpy_htod(indices).unwrap();
+                    let indices_gpu = stream.memcpy_stod(indices).unwrap();
 
                     let size = cuda_storage.buffer.len();
                     let block_size = 256;
@@ -821,8 +821,8 @@ impl Backend for CudaBackend {
                     builder.arg(cuda_storage.buffer.as_ref());
                     builder.arg(&mut result_buf);
                     builder.arg(&indices_gpu);
-                    builder.arg(&num_indices);
-                    builder.arg(&in_cols);
+                    builder.arg(&num_indices as i32);
+                    builder.arg(&in_cols as i32);
 
                     unsafe { builder.launch(cfg) }.map_err(|e| {
                         TensorError::BackendError(format!(
