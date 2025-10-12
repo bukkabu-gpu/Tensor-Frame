@@ -206,9 +206,7 @@ pub static BACKENDS: Lazy<Vec<Arc<dyn Backend>>> = Lazy::new(|| {
     let mut backends: Vec<Arc<dyn Backend>> = Vec::new();
     #[cfg(feature = "cuda")]
     if cuda::is_available() {
-        println!("cuuuuavaialeuuda");
         if let Ok(backend) = cuda::CudaBackend::new() {
-            println!("cuuuuuuda");
             backends.push(Arc::new(backend) as Arc<dyn Backend>);
         }
     }
