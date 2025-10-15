@@ -428,39 +428,47 @@ impl Add for Tensor {
             }
         }
 
-        // Handle broadcasting by converting to CPU and using broadcast_data
-        let self_data = self.to_vec()?;
-        let other_data = other.to_vec()?;
 
-        let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &self_data,
-            &self.shape,
-            &other_data,
-            &other.shape,
-            &result_shape,
-        )?;
+        // If shapes are the same, try backends directly
+        if self.shape.numel() > other.shape.numel() {
+            for backend in &BACKENDS[0..] {
 
-        // Create tensors with broadcasted data and try backends
-        for backend in &BACKENDS[0..] {
-            match (
-                backend.from_slice(&lhs_broadcasted, &result_shape),
-                backend.from_slice(&rhs_broadcasted, &result_shape),
-            ) {
-                (Ok(lhs_storage), Ok(rhs_storage)) => {
-                    match backend.add(&lhs_storage, &rhs_storage) {
-                        Ok(storage) => {
-                            return Ok(Tensor {
-                                storage,
-                                shape: result_shape,
-                            });
-                        }
-                        Err(_) => continue,
+                let other_storage = backend.broadcast_to(&other.storage, &other.shape, &result_shape).unwrap();
+                
+                match backend.add(&self.storage, &other_storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
                     }
+                    Err(_) => continue,
                 }
-                _ => continue,
             }
         }
 
+
+        if self.shape.numel() < other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+
+                let self_storage = backend.broadcast_to(&self.storage, &self.shape, &result_shape).unwrap();
+
+                match backend.add(&self_storage, &other.storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
+                    }
+                    Err(_) => continue,
+                }
+            }
+        }
+
+        // Handle broadcasting by converting to CPU and using broadcast_data
+
+
+        
         Err(TensorError::BackendError(
             "No backend could perform add operation".to_string(),
         ))
