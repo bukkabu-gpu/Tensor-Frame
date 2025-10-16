@@ -680,19 +680,39 @@ impl Div for Tensor {
 
         // If shapes are the same, try backends directly
         if self.shape.numel() > other.shape.numel() {
-            for backend in &BACKENDS[0..] {
-                let other_storage = backend
-                    .broadcast_to(&other.storage, &other.shape, &result_shape)
-                    .unwrap();
+            if other.shape.numel() == 0 {
+                let other_shape = Shape::new(vec![1]).unwrap();
 
-                match backend.div(&self.storage, &other_storage) {
-                    Ok(storage) => {
-                        return Ok(Tensor {
-                            storage,
-                            shape: result_shape,
-                        });
+                for backend in &BACKENDS[0..] {
+                    let other_storage = backend
+                        .broadcast_to(&other.storage, &other_shape, &result_shape)
+                        .unwrap();
+
+                    match backend.div(&self.storage, &other_storage) {
+                        Ok(storage) => {
+                            return Ok(Tensor {
+                                storage,
+                                shape: result_shape,
+                            });
+                        }
+                        Err(_) => continue,
                     }
-                    Err(_) => continue,
+                }
+            } else {
+                for backend in &BACKENDS[0..] {
+                    let other_storage = backend
+                        .broadcast_to(&other.storage, &other.shape, &result_shape)
+                        .unwrap();
+
+                    match backend.div(&self.storage, &other_storage) {
+                        Ok(storage) => {
+                            return Ok(Tensor {
+                                storage,
+                                shape: result_shape,
+                            });
+                        }
+                        Err(_) => continue,
+                    }
                 }
             }
         }
