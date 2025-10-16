@@ -9,7 +9,7 @@ pub mod shape;
 
 use crate::backend::{BACKENDS, Storage};
 use crate::error::{Result, TensorError};
-use broadcast::broadcast_data;
+//use broadcast::broadcast_data;
 use ops::TensorOps;
 use shape::Shape;
 use std::fmt;
@@ -489,6 +489,15 @@ impl Sub for Tensor {
             });
         };
 
+        #[cfg(feature = "debug")]
+        {
+            println!(
+                "Adding tensors with shapes {:?} and {:?}",
+                self.shape, other.shape
+            );
+            println!("Backend length: {}", BACKENDS.len());
+        }
+
         // If shapes are the same, try backends directly
         if self.shape == other.shape {
             for backend in &BACKENDS[0..] {
@@ -504,39 +513,42 @@ impl Sub for Tensor {
             }
         }
 
-        // Handle broadcasting by converting to CPU and using broadcast_data
-        let self_data = self.to_vec()?;
-        let other_data = other.to_vec()?;
+        // If shapes are the same, try backends directly
+        if self.shape.numel() > other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let other_storage = backend
+                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .unwrap();
 
-        let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &self_data,
-            &self.shape,
-            &other_data,
-            &other.shape,
-            &result_shape,
-        )?;
-
-        // Create tensors with broadcasted data and try backends
-        for backend in &BACKENDS[0..] {
-            match (
-                backend.from_slice(&lhs_broadcasted, &result_shape),
-                backend.from_slice(&rhs_broadcasted, &result_shape),
-            ) {
-                (Ok(lhs_storage), Ok(rhs_storage)) => {
-                    match backend.sub(&lhs_storage, &rhs_storage) {
-                        Ok(storage) => {
-                            return Ok(Tensor {
-                                storage,
-                                shape: result_shape,
-                            });
-                        }
-                        Err(_) => continue,
+                match backend.sub(&self.storage, &other_storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
                     }
+                    Err(_) => continue,
                 }
-                _ => continue,
             }
         }
 
+        if self.shape.numel() < other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let self_storage = backend
+                    .broadcast_to(&self.storage, &self.shape, &result_shape)
+                    .unwrap();
+
+                match backend.sub(&self_storage, &other.storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
+                    }
+                    Err(_) => continue,
+                }
+            }
+        }
         Err(TensorError::BackendError(
             "No backend could perform sub operation".to_string(),
         ))
@@ -559,6 +571,15 @@ impl Mul for Tensor {
             });
         };
 
+        #[cfg(feature = "debug")]
+        {
+            println!(
+                "Adding tensors with shapes {:?} and {:?}",
+                self.shape, other.shape
+            );
+            println!("Backend length: {}", BACKENDS.len());
+        }
+
         // If shapes are the same, try backends directly
         if self.shape == other.shape {
             for backend in &BACKENDS[0..] {
@@ -574,39 +595,42 @@ impl Mul for Tensor {
             }
         }
 
-        // Handle broadcasting by converting to CPU and using broadcast_data
-        let self_data = self.to_vec()?;
-        let other_data = other.to_vec()?;
+        // If shapes are the same, try backends directly
+        if self.shape.numel() > other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let other_storage = backend
+                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .unwrap();
 
-        let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &self_data,
-            &self.shape,
-            &other_data,
-            &other.shape,
-            &result_shape,
-        )?;
-
-        // Create tensors with broadcasted data and try backends
-        for backend in &BACKENDS[0..] {
-            match (
-                backend.from_slice(&lhs_broadcasted, &result_shape),
-                backend.from_slice(&rhs_broadcasted, &result_shape),
-            ) {
-                (Ok(lhs_storage), Ok(rhs_storage)) => {
-                    match backend.mul(&lhs_storage, &rhs_storage) {
-                        Ok(storage) => {
-                            return Ok(Tensor {
-                                storage,
-                                shape: result_shape,
-                            });
-                        }
-                        Err(_) => continue,
+                match backend.mul(&self.storage, &other_storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
                     }
+                    Err(_) => continue,
                 }
-                _ => continue,
             }
         }
 
+        if self.shape.numel() < other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let self_storage = backend
+                    .broadcast_to(&self.storage, &self.shape, &result_shape)
+                    .unwrap();
+
+                match backend.mul(&self_storage, &other.storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
+                    }
+                    Err(_) => continue,
+                }
+            }
+        }
         Err(TensorError::BackendError(
             "No backend could perform mul operation".to_string(),
         ))
@@ -629,6 +653,15 @@ impl Div for Tensor {
             });
         };
 
+        #[cfg(feature = "debug")]
+        {
+            println!(
+                "Adding tensors with shapes {:?} and {:?}",
+                self.shape, other.shape
+            );
+            println!("Backend length: {}", BACKENDS.len());
+        }
+
         // If shapes are the same, try backends directly
         if self.shape == other.shape {
             for backend in &BACKENDS[0..] {
@@ -644,39 +677,42 @@ impl Div for Tensor {
             }
         }
 
-        // Handle broadcasting by converting to CPU and using broadcast_data
-        let self_data = self.to_vec()?;
-        let other_data = other.to_vec()?;
+        // If shapes are the same, try backends directly
+        if self.shape.numel() > other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let other_storage = backend
+                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .unwrap();
 
-        let (lhs_broadcasted, rhs_broadcasted) = broadcast_data(
-            &self_data,
-            &self.shape,
-            &other_data,
-            &other.shape,
-            &result_shape,
-        )?;
-
-        // Create tensors with broadcasted data and try backends
-        for backend in &BACKENDS[0..] {
-            match (
-                backend.from_slice(&lhs_broadcasted, &result_shape),
-                backend.from_slice(&rhs_broadcasted, &result_shape),
-            ) {
-                (Ok(lhs_storage), Ok(rhs_storage)) => {
-                    match backend.div(&lhs_storage, &rhs_storage) {
-                        Ok(storage) => {
-                            return Ok(Tensor {
-                                storage,
-                                shape: result_shape,
-                            });
-                        }
-                        Err(_) => continue,
+                match backend.div(&self.storage, &other_storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
                     }
+                    Err(_) => continue,
                 }
-                _ => continue,
             }
         }
 
+        if self.shape.numel() < other.shape.numel() {
+            for backend in &BACKENDS[0..] {
+                let self_storage = backend
+                    .broadcast_to(&self.storage, &self.shape, &result_shape)
+                    .unwrap();
+
+                match backend.div(&self_storage, &other.storage) {
+                    Ok(storage) => {
+                        return Ok(Tensor {
+                            storage,
+                            shape: self.shape,
+                        });
+                    }
+                    Err(_) => continue,
+                }
+            }
+        }
         Err(TensorError::BackendError(
             "No backend could perform div operation".to_string(),
         ))
