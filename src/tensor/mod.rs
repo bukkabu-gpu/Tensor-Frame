@@ -681,6 +681,7 @@ impl Div for Tensor {
         // If shapes are the same, try backends directly
         if self.shape.numel() > other.shape.numel() {
             if other.shape.numel() == 0 {
+                println!("aaaaaaaaaa");
                 let other_shape = Shape::new(vec![1]).unwrap();
 
                 for backend in &BACKENDS[0..] {
@@ -699,6 +700,7 @@ impl Div for Tensor {
                     }
                 }
             } else {
+                println!("bbbbbbbbb");
                 for backend in &BACKENDS[0..] {
                     let other_storage = backend
                         .broadcast_to(&other.storage, &other.shape, &result_shape)
@@ -719,6 +721,7 @@ impl Div for Tensor {
 
         if self.shape.numel() < other.shape.numel() {
             if self.shape.numel() == 0 {
+                println!("ccccccccccc");
                 let self_shape = Shape::new(vec![1]).unwrap();
 
                 for backend in &BACKENDS[0..] {
@@ -737,6 +740,7 @@ impl Div for Tensor {
                     }
                 }
             } else {
+                println!("ddddddddd");
                 for backend in &BACKENDS[0..] {
                     let self_storage = backend
                         .broadcast_to(&self.storage, &self.shape, &result_shape)
