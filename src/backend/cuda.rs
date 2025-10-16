@@ -311,23 +311,8 @@ impl Backend for CudaBackend {
 
     fn add(&self, lhs: &Storage, rhs: &Storage) -> Result<Storage> {
         {
-            // Convert to vec, then to CUDA storage if needed
-            let lhs_data = self.to_vec_f32(lhs)?;
-            let rhs_data = self.to_vec_f32(rhs)?;
-
-            if lhs_data.len() != rhs_data.len() {
-                return Err(TensorError::ShapeMismatch {
-                    expected: vec![lhs_data.len()],
-                    got: vec![rhs_data.len()],
-                });
-            }
-            // Create CUDA storage from the data
-            let shape = Shape::new(vec![lhs_data.len()])?;
-            let lhs_storage = self.from_slice(&lhs_data, &shape)?;
-            let rhs_storage = self.from_slice(&rhs_data, &shape)?;
-
             // Now perform the operation
-            match (&lhs_storage, &rhs_storage) {
+            match (&lhs, &rhs) {
                 (Storage::Cuda(a), Storage::Cuda(b)) => {
                     self.launch_binary_kernel("add_kernel", a, b)
                 }

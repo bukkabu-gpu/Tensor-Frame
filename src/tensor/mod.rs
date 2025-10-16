@@ -428,13 +428,13 @@ impl Add for Tensor {
             }
         }
 
-
         // If shapes are the same, try backends directly
         if self.shape.numel() > other.shape.numel() {
             for backend in &BACKENDS[0..] {
+                let other_storage = backend
+                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .unwrap();
 
-                let other_storage = backend.broadcast_to(&other.storage, &other.shape, &result_shape).unwrap();
-                
                 match backend.add(&self.storage, &other_storage) {
                     Ok(storage) => {
                         return Ok(Tensor {
@@ -447,11 +447,11 @@ impl Add for Tensor {
             }
         }
 
-
         if self.shape.numel() < other.shape.numel() {
             for backend in &BACKENDS[0..] {
-
-                let self_storage = backend.broadcast_to(&self.storage, &self.shape, &result_shape).unwrap();
+                let self_storage = backend
+                    .broadcast_to(&self.storage, &self.shape, &result_shape)
+                    .unwrap();
 
                 match backend.add(&self_storage, &other.storage) {
                     Ok(storage) => {
@@ -467,8 +467,6 @@ impl Add for Tensor {
 
         // Handle broadcasting by converting to CPU and using broadcast_data
 
-
-        
         Err(TensorError::BackendError(
             "No backend could perform add operation".to_string(),
         ))
