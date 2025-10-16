@@ -718,22 +718,43 @@ impl Div for Tensor {
         }
 
         if self.shape.numel() < other.shape.numel() {
-            for backend in &BACKENDS[0..] {
-                let self_storage = backend
-                    .broadcast_to(&self.storage, &self.shape, &result_shape)
-                    .unwrap();
+            if self.shape.numel() == 0 {
+                let self_shape = Shape::new(vec![1]).unwrap();
 
-                match backend.div(&self_storage, &other.storage) {
-                    Ok(storage) => {
-                        return Ok(Tensor {
-                            storage,
-                            shape: result_shape,
-                        });
+                for backend in &BACKENDS[0..] {
+                    let self_storage = backend
+                        .broadcast_to(&self.storage, &self_shape, &result_shape)
+                        .unwrap();
+
+                    match backend.div(&self_storage, &other.storage) {
+                        Ok(storage) => {
+                            return Ok(Tensor {
+                                storage,
+                                shape: result_shape,
+                            });
+                        }
+                        Err(_) => continue,
                     }
-                    Err(_) => continue,
+                }
+            } else {
+                for backend in &BACKENDS[0..] {
+                    let self_storage = backend
+                        .broadcast_to(&self.storage, &other.shape, &result_shape)
+                        .unwrap();
+
+                    match backend.div(&self_storage, &other.storage) {
+                        Ok(storage) => {
+                            return Ok(Tensor {
+                                storage,
+                                shape: result_shape,
+                            });
+                        }
+                        Err(_) => continue,
+                    }
                 }
             }
         }
+
         Err(TensorError::BackendError(
             "No backend could perform div operation".to_string(),
         ))
