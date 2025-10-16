@@ -664,6 +664,7 @@ impl Div for Tensor {
 
         // If shapes are the same, try backends directly
         if self.shape == other.shape {
+            println!("selfとotherの型が同じ");
             for backend in &BACKENDS[0..] {
                 match backend.div(&self.storage, &other.storage) {
                     Ok(storage) => {
