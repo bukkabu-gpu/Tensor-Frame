@@ -439,7 +439,7 @@ impl Add for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -457,7 +457,7 @@ impl Add for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -524,7 +524,7 @@ impl Sub for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -542,7 +542,7 @@ impl Sub for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -606,7 +606,7 @@ impl Mul for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -624,7 +624,7 @@ impl Mul for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -689,7 +689,7 @@ impl Div for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
@@ -707,7 +707,7 @@ impl Div for Tensor {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: result_shape,
                         });
                     }
                     Err(_) => continue,
