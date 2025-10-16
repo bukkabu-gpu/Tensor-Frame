@@ -739,7 +739,7 @@ impl Div for Tensor {
             } else {
                 for backend in &BACKENDS[0..] {
                     let self_storage = backend
-                        .broadcast_to(&self.storage, &other.shape, &result_shape)
+                        .broadcast_to(&self.storage, &self.shape, &result_shape)
                         .unwrap();
 
                     match backend.div(&self_storage, &other.storage) {
