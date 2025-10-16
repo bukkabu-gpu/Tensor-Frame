@@ -641,6 +641,12 @@ impl Div for Tensor {
     type Output = Result<Tensor>;
 
     fn div(self, other: Self) -> Self::Output {
+        println!("self_shape = {:?}", self.shape);
+        println!("other_shape = {:?}", other.shape);
+
+        println!("self_shape_numel = {:?}", self.shape.numel());
+        println!("other_shape_numel = {:?}", other.shape.numel());
+
         // Check if shapes are compatible for broadcasting
         let result_shape = if self.shape == other.shape {
             self.shape.clone()
