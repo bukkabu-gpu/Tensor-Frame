@@ -570,7 +570,7 @@ mod tests {
     }
 
     #[test]
-    fn sub_test() {
+    fn div_test() {
         use crate::tensor::ops::TensorOps;
 
         // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
@@ -578,7 +578,7 @@ mod tests {
             .unwrap()
             .to_backend("CUDA")
             .expect("cudaだめ");
-        let b = Tensor::from_vec(vec![2.0], vec![1, 1]).unwrap();
+        let b = Tensor::from_vec(vec![2.0], vec![]).unwrap();
 
         let result = (a / b).unwrap();
         // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
