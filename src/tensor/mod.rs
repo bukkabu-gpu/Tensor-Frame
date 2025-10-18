@@ -392,15 +392,38 @@ impl Add for Tensor {
     type Output = Result<Tensor>;
 
     fn add(self, other: Self) -> Self::Output {
-        // Check if shapes are compatible for broadcasting
-        let result_shape = if self.shape == other.shape {
+        //スカラー型の場合、shapeがvec[]となってしまうので形状を一次元として扱うよう変換
+        let self_shape = if self.shape.dims().len() < other.shape.dims().len() {
+            match other.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
             self.shape.clone()
-        } else if let Some(broadcasted_shape) = self.shape.broadcast_shape(&other.shape) {
+        };
+
+        let other_shape = if other.shape.dims().len() < self.shape.dims().len() {
+            match self.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
+            other.shape
+        };
+
+        // Check if shapes are compatible for broadcasting
+        let result_shape = if self_shape == other_shape {
+            self_shape.clone()
+        } else if let Some(broadcasted_shape) = self_shape.broadcast_shape(&other_shape) {
             broadcasted_shape
         } else {
             return Err(TensorError::ShapeMismatch {
-                expected: self.shape.dims().to_vec(),
-                got: other.shape.dims().to_vec(),
+                expected: self_shape.dims().to_vec(),
+                got: other_shape.dims().to_vec(),
             });
         };
 
@@ -414,13 +437,13 @@ impl Add for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape == other.shape {
+        if self_shape == other_shape {
             for backend in &BACKENDS[0..] {
                 match backend.add(&self.storage, &other.storage) {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: self_shape,
                         });
                     }
                     Err(_) => continue,
@@ -429,10 +452,10 @@ impl Add for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape.numel() > other.shape.numel() {
+        if self_shape.numel() > other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let other_storage = backend
-                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .broadcast_to(&other.storage, &other_shape, &result_shape)
                     .unwrap();
 
                 match backend.add(&self.storage, &other_storage) {
@@ -447,7 +470,7 @@ impl Add for Tensor {
             }
         }
 
-        if self.shape.numel() < other.shape.numel() {
+        if self_shape.numel() < other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let self_storage = backend
                     .broadcast_to(&self.storage, &self.shape, &result_shape)
@@ -465,8 +488,6 @@ impl Add for Tensor {
             }
         }
 
-        // Handle broadcasting by converting to CPU and using broadcast_data
-
         Err(TensorError::BackendError(
             "No backend could perform add operation".to_string(),
         ))
@@ -477,15 +498,38 @@ impl Sub for Tensor {
     type Output = Result<Tensor>;
 
     fn sub(self, other: Self) -> Self::Output {
-        // Check if shapes are compatible for broadcasting
-        let result_shape = if self.shape == other.shape {
+        //スカラー型の場合、shapeがvec[]となってしまうので形状を一次元として扱うよう変換
+        let self_shape = if self.shape.dims().len() < other.shape.dims().len() {
+            match other.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
             self.shape.clone()
-        } else if let Some(broadcasted_shape) = self.shape.broadcast_shape(&other.shape) {
+        };
+
+        let other_shape = if other.shape.dims().len() < self.shape.dims().len() {
+            match self.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
+            other.shape
+        };
+
+        // Check if shapes are compatible for broadcasting
+        let result_shape = if self_shape == other_shape {
+            self_shape.clone()
+        } else if let Some(broadcasted_shape) = self_shape.broadcast_shape(&other_shape) {
             broadcasted_shape
         } else {
             return Err(TensorError::ShapeMismatch {
-                expected: self.shape.dims().to_vec(),
-                got: other.shape.dims().to_vec(),
+                expected: self_shape.dims().to_vec(),
+                got: other_shape.dims().to_vec(),
             });
         };
 
@@ -499,13 +543,13 @@ impl Sub for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape == other.shape {
+        if self_shape == other_shape {
             for backend in &BACKENDS[0..] {
                 match backend.sub(&self.storage, &other.storage) {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: self_shape,
                         });
                     }
                     Err(_) => continue,
@@ -514,10 +558,10 @@ impl Sub for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape.numel() > other.shape.numel() {
+        if self_shape.numel() > other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let other_storage = backend
-                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .broadcast_to(&other.storage, &other_shape, &result_shape)
                     .unwrap();
 
                 match backend.sub(&self.storage, &other_storage) {
@@ -532,7 +576,7 @@ impl Sub for Tensor {
             }
         }
 
-        if self.shape.numel() < other.shape.numel() {
+        if self_shape.numel() < other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let self_storage = backend
                     .broadcast_to(&self.storage, &self.shape, &result_shape)
@@ -549,6 +593,7 @@ impl Sub for Tensor {
                 }
             }
         }
+
         Err(TensorError::BackendError(
             "No backend could perform sub operation".to_string(),
         ))
@@ -559,15 +604,38 @@ impl Mul for Tensor {
     type Output = Result<Tensor>;
 
     fn mul(self, other: Self) -> Self::Output {
-        // Check if shapes are compatible for broadcasting
-        let result_shape = if self.shape == other.shape {
+        //スカラー型の場合、shapeがvec[]となってしまうので形状を一次元として扱うよう変換
+        let self_shape = if self.shape.dims().len() < other.shape.dims().len() {
+            match other.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
             self.shape.clone()
-        } else if let Some(broadcasted_shape) = self.shape.broadcast_shape(&other.shape) {
+        };
+
+        let other_shape = if other.shape.dims().len() < self.shape.dims().len() {
+            match self.shape.dims().len() {
+                1 => Shape::new(vec![1]).unwrap(),
+                2 => Shape::new(vec![1, 1]).unwrap(),
+                3 => Shape::new(vec![1, 1, 1]).unwrap(),
+                _ => panic!("4次元以上は未実装です。"),
+            }
+        } else {
+            other.shape
+        };
+
+        // Check if shapes are compatible for broadcasting
+        let result_shape = if self_shape == other_shape {
+            self_shape.clone()
+        } else if let Some(broadcasted_shape) = self_shape.broadcast_shape(&other_shape) {
             broadcasted_shape
         } else {
             return Err(TensorError::ShapeMismatch {
-                expected: self.shape.dims().to_vec(),
-                got: other.shape.dims().to_vec(),
+                expected: self_shape.dims().to_vec(),
+                got: other_shape.dims().to_vec(),
             });
         };
 
@@ -581,13 +649,13 @@ impl Mul for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape == other.shape {
+        if self_shape == other_shape {
             for backend in &BACKENDS[0..] {
                 match backend.mul(&self.storage, &other.storage) {
                     Ok(storage) => {
                         return Ok(Tensor {
                             storage,
-                            shape: self.shape,
+                            shape: self_shape,
                         });
                     }
                     Err(_) => continue,
@@ -596,10 +664,10 @@ impl Mul for Tensor {
         }
 
         // If shapes are the same, try backends directly
-        if self.shape.numel() > other.shape.numel() {
+        if self_shape.numel() > other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let other_storage = backend
-                    .broadcast_to(&other.storage, &other.shape, &result_shape)
+                    .broadcast_to(&other.storage, &other_shape, &result_shape)
                     .unwrap();
 
                 match backend.mul(&self.storage, &other_storage) {
@@ -614,7 +682,7 @@ impl Mul for Tensor {
             }
         }
 
-        if self.shape.numel() < other.shape.numel() {
+        if self_shape.numel() < other_shape.numel() {
             for backend in &BACKENDS[0..] {
                 let self_storage = backend
                     .broadcast_to(&self.storage, &self.shape, &result_shape)
@@ -631,6 +699,7 @@ impl Mul for Tensor {
                 }
             }
         }
+
         Err(TensorError::BackendError(
             "No backend could perform mul operation".to_string(),
         ))
@@ -687,7 +756,6 @@ impl Div for Tensor {
 
         // If shapes are the same, try backends directly
         if self_shape == other_shape {
-            println!("selfとotherの型が同じ");
             for backend in &BACKENDS[0..] {
                 match backend.div(&self.storage, &other.storage) {
                     Ok(storage) => {
@@ -703,7 +771,6 @@ impl Div for Tensor {
 
         // If shapes are the same, try backends directly
         if self_shape.numel() > other_shape.numel() {
-            println!("bbbbbbbbb");
             for backend in &BACKENDS[0..] {
                 let other_storage = backend
                     .broadcast_to(&other.storage, &other_shape, &result_shape)
