@@ -570,10 +570,9 @@ mod tests {
     }
 
     #[test]
-    fn sub_test() {
+    fn div_test() {
         use crate::tensor::ops::TensorOps;
         use std::time::Instant;
-
         // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
         let a = Tensor::ones(Shape::new(vec![100,784]).unwrap()).unwrap()
             .to_backend("CUDA")
@@ -584,6 +583,7 @@ mod tests {
         let end = Instant::now();
         let duration = end.duration_since(start);
         println!("処理時間{:?}", duration);
+
         // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
 
         //println!("result = {}", result);
