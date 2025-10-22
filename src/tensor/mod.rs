@@ -1230,9 +1230,28 @@ impl TensorOps for Tensor {
             }
         }
         Err(TensorError::BackendError(
-            "No backend could perform relu operation".to_string(),
+            "No backend could perform max_mask operation".to_string(),
         ))
     }
+
+
+    fn min_mask(&self,min: f32) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.min_mask(&self.storage,min) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform min_mask operation".to_string(),
+        ))
+    }
+
 
 
 

@@ -82,6 +82,7 @@ impl CudaBackend {
                     "cos_kernel",
                     "relu_kernel",
                     "max_mask_kernel",
+                    "min_mask_kernel",
                     "mask_for_grad_relu_kernel",
                     "sigmoid_kernel",
                     "tanh_kernel",
@@ -1193,6 +1194,59 @@ impl Backend for CudaBackend {
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
                     self.max_mask(&cuda_storage, max)
+                }
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+
+    fn min_mask(&self, storage: &Storage, min: f32) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            match storage {
+                Storage::Cuda(cuda_storage) => {
+                    let stream = self.context.default_stream();
+                    let mut result_buf = stream
+                        .alloc_zeros::<f32>(cuda_storage.buffer.len())
+                        .map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
+
+                    let kernel = self.kernels.get("min_mask_kernel").ok_or_else(|| {
+                        TensorError::BackendError("min_mask_kernel not found".to_string())
+                    })?;
+
+                    let size = cuda_storage.buffer.len();
+                    let cfg = LaunchConfig::for_num_elems(size as u32);
+
+                    let mut builder = stream.launch_builder(kernel);
+                    builder.arg(cuda_storage.buffer.as_ref());
+                    builder.arg(&mut result_buf);
+                    builder.arg(&min);
+                    let size_arg = size as i32;
+                    builder.arg(&size_arg);
+
+                    unsafe { builder.launch(cfg) }.map_err(|e| {
+                        TensorError::BackendError(format!("Failed to launch min_mask kernel: {}", e))
+                    })?;
+
+                    Ok(Storage::Cuda(CudaStorage {
+                        buffer: std::sync::Arc::new(result_buf),
+                    }))
+                }
+                _ => {
+                    // Convert to CUDA and try again
+                    let data = self.to_vec_f32(storage)?;
+                    let shape = Shape::new(vec![data.len()])?;
+                    let cuda_storage = self.from_slice(&data, &shape)?;
+                    self.min_mask(&cuda_storage, min)
                 }
             }
         }

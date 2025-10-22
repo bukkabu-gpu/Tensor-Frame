@@ -137,6 +137,8 @@ pub trait Backend: Debug + Send + Sync {
 
     fn max_mask(&self, storage: &Storage, max: f32) -> Result<Storage>;
 
+    fn min_mask(&self, storage: &Storage, min: f32) -> Result<Storage>;
+
     fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage>;
 
     /// Element-wise sigmoid activation function.

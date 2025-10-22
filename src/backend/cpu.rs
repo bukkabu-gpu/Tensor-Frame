@@ -434,6 +434,14 @@ impl Backend for CpuBackend {
         
     }
 
+
+    fn min_mask(&self, storage: &Storage, min: f32) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| if x<min{1.0}else{0.0}).collect();
+        Ok(Storage::Cpu(result))
+        
+    }
+
     fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data
