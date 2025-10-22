@@ -1215,6 +1215,29 @@ impl TensorOps for Tensor {
         ))
     }
 
+
+
+    fn max_mask(&self,max: f32) -> Result<Self> {
+        for backend in &BACKENDS[0..] {
+            match backend.max_mask(&self.storage,max) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: self.shape.clone(),
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform relu operation".to_string(),
+        ))
+    }
+
+
+
+
+
     fn mask_for_grad_relu(&self) -> Result<Self> {
         for backend in &BACKENDS[0..] {
             match backend.mask_for_grad_relu(&self.storage) {

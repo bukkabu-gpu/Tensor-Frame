@@ -427,6 +427,13 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
     }
 
+    fn max_mask(&self, storage: &Storage, max: f32) -> Result<Storage> {
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| if x>max{1.0}else{0.0}).collect();
+        Ok(Storage::Cpu(result))
+        
+    }
+
     fn mask_for_grad_relu(&self, storage: &Storage) -> Result<Storage> {
         let data = self.to_vec_f32(storage)?;
         let result: Vec<f32> = data

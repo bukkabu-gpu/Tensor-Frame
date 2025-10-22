@@ -415,6 +415,12 @@ pub trait TensorOps {
     where
         Self: Sized;
 
+
+    fn max_mask(&self, max: f32) -> Result<Self>
+    where
+        Self: Sized;
+
+
     fn mask_for_grad_relu(&self) -> Result<Self>
     where
         Self: Sized;
