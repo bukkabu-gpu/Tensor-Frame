@@ -571,18 +571,58 @@ mod tests {
 
     #[test]
     fn div_test() {
+        use crate::tensor::ops::TensorOps;
+        use std::time::Instant;
         // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
-        let a = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2])
+        let a = Tensor::ones(Shape::new(vec![100,784]).unwrap()).unwrap()
+            .to_backend("CUDA")
+            .expect("cudaだめ");
+        let b = Tensor::from_vec(vec![2.0], vec![1, 1]).unwrap();
+        let start = Instant::now();
+        let result = (a / b).unwrap();
+        let end = Instant::now();
+        let duration = end.duration_since(start);
+        println!("処理時間{:?}", duration);
+
+        // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
+
+        //println!("result = {}", result);
+    }
+
+
+    #[test]
+    fn max_mask_test() {
+        use crate::tensor::ops::TensorOps;
+
+        // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
+        let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2])
             .unwrap()
             .to_backend("CUDA")
             .expect("cudaだめ");
-        let b = Tensor::from_vec(vec![2.0], vec![]).unwrap();
 
-        let result = (a * b).unwrap();
         // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
-
-        println!("result = {}", result);
+        let result = tensor.max_mask(3.0f32).unwrap();
+        println!("result = {}",result);
+    
     }
+
+
+    #[test]
+    fn min_mask_test() {
+        use crate::tensor::ops::TensorOps;
+
+        // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
+        let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 5.0, 6.0], vec![3, 2])
+            .unwrap()
+            .to_backend("CUDA")
+            .expect("cudaだめ");
+
+        // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
+        let result = tensor.min_mask(3.0f32).unwrap();
+        println!("result = {}",result);
+    
+    }
+
 }
 
 // ==== WGPU-SPECIFIC TESTS ====

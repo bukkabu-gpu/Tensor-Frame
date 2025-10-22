@@ -89,6 +89,36 @@ __global__ void mask_for_grad_relu_kernel(const float* input, float* output, int
     }
 }
 
+
+
+
+
+// maxより値が大きいとき1を返し、それ以外は0を返す。
+__global__ void max_mask_kernel(const float* input, float* output, float max,int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = (input[idx]>max) ? 1: 0;
+        
+    }
+}
+
+
+
+
+
+// minより値が小さいとき1を返し、それ以外は0を返す。
+__global__ void min_mask_kernel(const float* input, float* output, float min,int size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        output[idx] = (min>input[idx]) ? 1: 0;
+    }
+}
+
+
+
+
+
+
 // Sigmoid activation function
 __global__ void sigmoid_kernel(const float* input, float* output, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
