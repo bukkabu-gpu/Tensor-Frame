@@ -1192,7 +1192,7 @@ impl Backend for CudaBackend {
                     let data = self.to_vec_f32(storage)?;
                     let shape = Shape::new(vec![data.len()])?;
                     let cuda_storage = self.from_slice(&data, &shape)?;
-                    self.pow(&cuda_storage, power)
+                    self.max_mask(&cuda_storage, max)
                 }
             }
         }
