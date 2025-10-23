@@ -493,4 +493,8 @@ pub trait TensorOps {
     fn min_for_clamp_grad(&self) -> Result<Self>
     where
         Self: Sized;
+
+    fn argmax_axis_2d(&self,axis: usize) -> Result<Self>
+    where
+        Self: Sized;
 }

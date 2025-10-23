@@ -623,6 +623,41 @@ mod tests {
     
     }
 
+
+
+    #[test]
+    fn argmax_axis0_2d_test() {
+        use crate::tensor::ops::TensorOps;
+
+        // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
+        let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 1.0, 1.0], vec![2, 3])
+            .unwrap()
+            .to_backend("CUDA")
+            .expect("cudaだめ");
+
+        // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
+        let result = tensor.argmax_axis_2d(0).unwrap();
+        println!("result = {}",result);
+    
+    }
+
+
+    #[test]
+    fn argmax_axis1_2d_test() {
+        use crate::tensor::ops::TensorOps;
+
+        // Create a 2x3 tensor: [[1, 2, 3], [4, 5, 6]]
+        let tensor = Tensor::from_vec(vec![1.0, 2.0, 3.0, 4.0, 6.0, 5.0], vec![2, 3])
+            .unwrap()
+            .to_backend("CUDA")
+            .expect("cudaだめ");
+
+        // Sum along axis 0 (columns): should give [5, 7, 9] with shape [3]
+        let result = tensor.argmax_axis_2d(1).unwrap();
+        println!("result = {}",result);
+    
+    }
+
 }
 
 // ==== WGPU-SPECIFIC TESTS ====
