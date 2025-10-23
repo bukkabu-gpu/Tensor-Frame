@@ -11,6 +11,7 @@ use crate::backend::{BACKENDS, Storage};
 use crate::error::{Result, TensorError};
 //use broadcast::broadcast_data;
 use ops::TensorOps;
+use rayon::vec;
 use shape::Shape;
 use std::fmt;
 use std::ops::{Add, Div, Mul, Sub};
@@ -1407,6 +1408,38 @@ impl TensorOps for Tensor {
         }
         Err(TensorError::BackendError(
             "No backend could perform mask_for_grad_relu operation".to_string(),
+        ))
+    }
+
+    fn argmax_axis_2d(&self, axis: usize) -> Result<Self> {
+        
+        // Calculate the result shape
+        let dims = self.shape.dims();
+        let result_shape = match axis {
+            0 => Shape::new(vec![1,dims[1]])?,
+            1 => Shape::new(vec![dims[0],1])?,
+            _ => {
+                    panic!(
+                        "Axis {} is out of bounds for tensor with 0 or 1 dimensions",
+                        axis,
+                        
+                    );
+                }
+        };
+
+        for backend in &BACKENDS[0..] {
+            match backend.argmax_axis_2d(&self.storage, &self.shape, axis) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: result_shape,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform sum operation".to_string(),
         ))
     }
 }

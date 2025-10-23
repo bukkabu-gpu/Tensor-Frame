@@ -158,6 +158,8 @@ pub trait Backend: Debug + Send + Sync {
     fn max_for_clamp_grad(&self, storage: &Storage) -> Result<Storage>;
 
     fn min_for_clamp_grad(&self, storage: &Storage) -> Result<Storage>;
+
+    fn argmax_axis_2d(&self,storage: &Storage,shape: &Shape,axis: usize) -> Result<Storage>;
 }
 
 /// Backend-specific storage for tensor data.

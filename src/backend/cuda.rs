@@ -57,6 +57,8 @@ impl CudaBackend {
                     "mean_kernel",
                     "broadcast_to_kernel",
                     "rows_slice_kernel",
+                    "argmax_axis0_2d_kernel",
+                    "argmax_axis1_2d_kernel",
                 ],
             ),
             (
@@ -1449,4 +1451,122 @@ impl Backend for CudaBackend {
             "CUDA support not compiled in".to_string(),
         ))
     }
+
+
+
+
+    fn argmax_axis_2d(&self, storage: &Storage, shape: &Shape, axis: usize) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            match axis {
+                0 => {
+                    // Sum all elements using CUDA kernel
+                    let Storage::Cuda(cuda_storage) = storage else {
+                        panic!("想定外のバックエンド: この関数はCUDA専用です");
+                    };
+                    {
+                        let rows = shape.dims()[0];
+                        let cols = shape.dims()[1];
+
+                        let stream = self.context.default_stream();
+                        let mut result_buf = stream.alloc_zeros::<f32>(cols).map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
+
+                        let kernel = self.kernels.get("argmax_axis0_2d_kernel").ok_or_else(|| {
+                            TensorError::BackendError("argmax_axis0_2d_kernel not found".to_string())
+                        })?;
+
+                        let size = cuda_storage.buffer.len();
+                        let block_size = 256;
+                        let grid_size = (size + block_size - 1) / block_size;
+
+                        let cfg = LaunchConfig {
+                            grid_dim: (grid_size as u32, 1, 1),
+                            block_dim: (block_size as u32, 1, 1),
+                            shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
+                        };
+
+                        let mut builder = stream.launch_builder(kernel);
+                        builder.arg(cuda_storage.buffer.as_ref());
+                        builder.arg(&mut result_buf);
+                        let in_rows = rows as i32;
+                        let in_cols = cols as i32;
+                        builder.arg(&in_rows);
+                        builder.arg(&in_cols);
+
+
+                        unsafe { builder.launch(cfg) }.map_err(|e| {
+                            TensorError::BackendError(format!("Failed to launch argmax_axis0_2d kernel: {}", e))
+                        })?;
+
+                        Ok(Storage::Cuda(CudaStorage {
+                            buffer: std::sync::Arc::new(result_buf),
+                        }))
+                    }
+                }
+
+                1 => {
+                    // Sum all elements using CUDA kernel
+                    let Storage::Cuda(cuda_storage) = storage else {
+                        panic!("想定外のバックエンド: この関数はCUDA専用です");
+                    };
+                    {
+                        let rows = shape.dims()[0];
+                        let cols = shape.dims()[1];
+
+                        let stream = self.context.default_stream();
+                        
+                        let mut result_buf = stream.alloc_zeros::<f32>(rows).map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
+
+                        let kernel = self.kernels.get("argmax_axis1_2d_kernel").ok_or_else(|| {
+                                TensorError::BackendError("argmax_axis1_2d_kernel not found".to_string())
+                            })?;
+            
+                        let size = cuda_storage.buffer.len();
+                        let block_size = 256;
+                        let grid_size = (size+block_size-1)/block_size;
+
+                        let cfg = LaunchConfig {
+                            grid_dim: (grid_size as u32, 1, 1),
+                            block_dim: (block_size as u32, 1, 1),
+                            shared_mem_bytes: (block_size * std::mem::size_of::<f32>()) as u32,
+                        };
+
+                        let mut builder = stream.launch_builder(kernel);
+                        builder.arg(cuda_storage.buffer.as_ref());
+                        builder.arg(&mut result_buf);
+                        let in_rows = rows as i32;
+                        let in_cols = cols as i32;
+                        builder.arg(&in_rows);
+                        builder.arg(&in_cols);
+
+                        unsafe { builder.launch(cfg) }.map_err(|e| {
+                            TensorError::BackendError(format!("Failed to launch argmax_axis1_2d kernel: {}", e))
+                        })?;
+
+                        Ok(Storage::Cuda(CudaStorage {
+                            buffer: std::sync::Arc::new(result_buf),
+                        }))
+                    }
+                }
+                _ => {Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))}
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
 }

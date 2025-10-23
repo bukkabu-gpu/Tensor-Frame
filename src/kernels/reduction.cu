@@ -134,6 +134,74 @@ __global__ void rows_slice_kernel(const float* input, float* output,
 }
 
 
+__global__ void argmax_axis0_2d_kernel(const float* input, float* output,
+                  int in_rows, int in_cols) {
+    int col_idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+
+    if (col_idx>= in_cols) {
+        return;
+    }
+     
+
+
+    float max_val = input[col_idx];
+    int max_row_idx = 0;
+
+
+
+    for (int row = 1; row<in_rows; ++row) {
+        float current_val = input[row*in_cols+col_idx];
+
+        //現在の値が前の最大値より大きいか判別
+        if (current_val>max_val){
+            max_val=current_val;   //最大値を更新
+            max_row_idx=row;  // その時のインデックスに更新
+        }
+
+    output[col_idx] = (float)max_row_idx;
+    
+    }
+    
+    
+    
+
+    
+}
+
+__global__ void argmax_axis1_2d_kernel(const float* input, float* output,
+                  int in_rows, int in_cols) {
+
+    int row_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+
+    if (row_idx>= in_rows) {
+        return;
+    }
+     
+
+    int row_start_idx = row_idx * in_cols;
+
+    float max_val = input[row_start_idx];
+    int max_col_idx = 0;
+
+
+
+    for (int c = 1; c<in_cols; ++c) {
+        float current_val = input[row_start_idx+c];
+
+        //現在の値が前の最大値より大きいか判別
+        if (current_val>max_val){
+            max_val=current_val;   //最大値を更新
+            max_col_idx=c;  // その時のインデックスに更新
+        }
+
+    output[row_idx] = (float)max_col_idx;
+    
+    }
+
+
+
+}
 
 } // extern "C"
