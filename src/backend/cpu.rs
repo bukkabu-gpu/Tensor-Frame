@@ -519,4 +519,14 @@ impl Backend for CpuBackend {
         Ok(Storage::Cpu(result))
         
     }
+
+
+    // 仮の処理 coshx関数を使っている
+    fn one_hot_encode(&self,storage: &Storage,shape: &Shape,num_class: usize) -> Result<Storage> {
+        println!("argmax_axis_2dの関数がcpuで処理されています。この処理は未実装です。");
+        let data = self.to_vec_f32(storage)?;
+        let result: Vec<f32> = data.iter().map(|&x| x.cosh()).collect();
+        Ok(Storage::Cpu(result))
+        
+    }
 }

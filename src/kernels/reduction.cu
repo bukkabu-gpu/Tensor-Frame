@@ -204,4 +204,31 @@ __global__ void argmax_axis1_2d_kernel(const float* input, float* output,
 
 }
 
+
+
+__global__ void one_hot_encode_kernel(const float* input, float* output,
+                  int N, int num_class) {
+
+    int row_idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+
+    if (row_idx>= N) {
+        return;
+    }
+     
+    int label = input[row_idx];
+
+    if (label >=0 && label <num_class){
+
+        output[row_idx*num_class+label]=1.0f;
+    }
+
+    
+
+}
+
+
+
+
+
 } // extern "C"
