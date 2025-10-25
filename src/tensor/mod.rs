@@ -1442,6 +1442,26 @@ impl TensorOps for Tensor {
             "No backend could perform sum operation".to_string(),
         ))
     }
+
+
+
+    fn one_hot_encode(&self, num_class: usize) -> Result<Self> {
+        let result_shape = Shape::new(vec![self.shape.dims()[0],num_class]).unwrap();
+        for backend in &BACKENDS[0..] {
+            match backend.one_hot_encode(&self.storage, &self.shape,num_class) {
+                Ok(storage) => {
+                    return Ok(Tensor {
+                        storage,
+                        shape: result_shape,
+                    });
+                }
+                Err(_) => continue,
+            }
+        }
+        Err(TensorError::BackendError(
+            "No backend could perform min operation".to_string(),
+        ))
+    }
 }
 
 impl fmt::Display for Tensor {

@@ -59,6 +59,7 @@ impl CudaBackend {
                     "rows_slice_kernel",
                     "argmax_axis0_2d_kernel",
                     "argmax_axis1_2d_kernel",
+                    "one_hot_encode_kernel",
                 ],
             ),
             (
@@ -1569,4 +1570,62 @@ impl Backend for CudaBackend {
         ))
     }
 
+
+
+
+
+    fn one_hot_encode(&self, storage: &Storage, shape:&Shape,num_class: usize) -> Result<Storage> {
+        #[cfg(feature = "cuda")]
+        {
+            match storage {
+                Storage::Cuda(cuda_storage) => {
+                    let stream = self.context.default_stream();
+                    let n = shape.dims()[0];
+                    let mut result_buf = stream
+                        .alloc_zeros::<f32>(n*num_class)
+                        .map_err(|e| {
+                            TensorError::BackendError(format!(
+                                "Failed to allocate CUDA result buffer: {}",
+                                e
+                            ))
+                        })?;
+
+                    let kernel = self.kernels.get("one_hot_encode_kernel").ok_or_else(|| {
+                        TensorError::BackendError("one_hot_encode_kernel not found".to_string())
+                    })?;
+
+                    let size = cuda_storage.buffer.len();
+                    let cfg = LaunchConfig::for_num_elems(size as u32);
+
+                    let mut builder = stream.launch_builder(kernel);
+                    builder.arg(cuda_storage.buffer.as_ref());
+                    builder.arg(&mut result_buf);
+                    builder.arg(&n);
+                    let num_class = num_class as i32;
+                    builder.arg(&num_class);
+
+                    unsafe { builder.launch(cfg) }.map_err(|e| {
+                        TensorError::BackendError(format!("Failed to launch one_hot_encode kernel: {}", e))
+                    })?;
+
+                    Ok(Storage::Cuda(CudaStorage {
+                        buffer: std::sync::Arc::new(result_buf),
+                    }))
+                }
+                _ => {
+                    // Convert to CUDA and try again
+                    let data = self.to_vec_f32(storage)?;
+                    let shape = Shape::new(vec![data.len()])?;
+                    let cuda_storage = self.from_slice(&data, &shape)?;
+                    self.one_hot_encode(&cuda_storage,&shape, num_class)
+                }
+            }
+        }
+        #[cfg(not(feature = "cuda"))]
+        Err(TensorError::BackendError(
+            "CUDA support not compiled in".to_string(),
+        ))
+    }
+
+    
 }

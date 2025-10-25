@@ -497,4 +497,8 @@ pub trait TensorOps {
     fn argmax_axis_2d(&self,axis: usize) -> Result<Self>
     where
         Self: Sized;
+
+    fn one_hot_encode(&self,num_class: usize) -> Result<Self>
+    where
+        Self: Sized;
 }
